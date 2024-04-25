@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "ragsc"
+version = "0.1.0"
+description = "Proof of concept use of RAG for cell annotations"
+authors = ["David Eidelman <david.eidelman@mcgill.ca>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.1"
+mypy = "^1.10.0"
+pytest = "^8.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
