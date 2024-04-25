@@ -8,6 +8,8 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.11"
+sqlalchemy = "^2.0.29"
+psycopg = {extras = ["binary", "pool"], version = "^3.1.18"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"

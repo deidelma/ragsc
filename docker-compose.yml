@@ -1,10 +1,10 @@
 version: "3"
 name: ragsc 
 services:
-  app:
-    build:
-      context: ./
-      dockerfile: Dockerfile
+  # app:
+  #   build:
+  #     context: ./
+  #     dockerfile: Dockerfile
   postgres:
     build:
       context: ./postgres
@@ -19,6 +19,6 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=vectorexample
+      - POSTGRES_DB=ragsc
 volumes:
   postgres_data:
