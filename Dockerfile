@@ -19,10 +19,8 @@ FROM python:3.12-slim-bullseye as runtime
 ENV VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
 
-COPY --from=builder /bin/bash /bin/bash 
-COPY --from=builder /usr/bin/git /usr/bin/git
+WORKDIR /app
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
-COPY main.py /app/main.py
-COPY ragsc /app/ragsc 
+COPY --from=builder /bin/bash /bin/bash 
 
 ENTRYPOINT bash
