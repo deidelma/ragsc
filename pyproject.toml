@@ -16,6 +16,7 @@ langchain-community = "^0.0.34"
 langchain-openai = "^0.1.4"
 ipykernel = "^6.29.4"
 jupyterlab = "^4.1.8"
+chromadb = "^0.5.0"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"
