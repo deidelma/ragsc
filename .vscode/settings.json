@@ -3,6 +3,7 @@
         "DATAPATH",
         "dotenv",
         "langchain",
+        "openai",
         "ragsc",
         "tqdm"
     ]
