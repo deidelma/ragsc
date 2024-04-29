@@ -27,11 +27,13 @@ def sum_documents(docs: list[Document]) -> int:
         sum += len(doc)  # type: ignore
     return sum
 
+
 def embed_documents(docs: list[Document]):
     embeddings_model = OpenAIEmbeddings()
     e = embeddings_model.embed_documents(docs[0][0])
     logger.debug(e)
     return 0
+
 
 def process_data(path: PathLike):
     logger.info("processing markdown documents at %s" % str(path))
