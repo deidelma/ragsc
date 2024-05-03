@@ -1,7 +1,12 @@
 from pathlib import Path
 
 from pytest import fixture
-from ragsc.markdown import MarkdownPage
+from ragsc.markdown import MarkdownDirectory, MarkdownPage
+
+
+@fixture
+def data_directory():
+    yield Path("data")
 
 
 @fixture
@@ -9,7 +14,8 @@ def data_file_list():
     data_path = Path("data")
     yield list(data_path.glob("*.md"))
 
-MOCK_PAGE="""
+
+MOCK_PAGE = """
 # demetra
 
 <? keywords: demetra, admin, administrative, cmarc, munaca  ?>
@@ -81,6 +87,7 @@ MOCK_PAGE="""
   - help with knowledge transfer
 """
 
+
 def test_files_available(data_file_list):
     assert len(data_file_list) > 0
 
@@ -92,17 +99,24 @@ def test_load_single_markdown_page(data_file_list):
     page = MarkdownPage(item_path)
     assert page is not None
 
+
 def test_create_markdown():
-    page = MarkdownPage(None,data=MOCK_PAGE)
+    page = MarkdownPage(None, data=MOCK_PAGE)
     m = page._create_metadata()
     assert m is not None
     assert "keywords" in m
-    assert "created" in m 
+    assert "created" in m
     assert "filename" in m
     assert "administrative" in m["keywords"]
+
 
 def test_split_page():
     page = MarkdownPage(None, MOCK_PAGE)
     assert len(page.chunks) == 5
     assert len(page.ids) == 5
     # assert len(page.embeddings) == 5
+
+
+def test_markdown_directory(data_directory, data_file_list):
+    folder = MarkdownDirectory(data_directory)
+    assert folder.page_count == len(data_file_list)

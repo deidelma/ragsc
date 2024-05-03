@@ -12,20 +12,21 @@ from typing import Any
 
 import markdown
 from bs4 import BeautifulSoup
-# from langchain_openai import OpenAIEmbeddings
+from chromadb.api.models.Collection import Collection
 from langchain_text_splitters import CharacterTextSplitter
 from loguru import logger
+from tqdm import tqdm
 
 
 class MarkdownPage:
     """
     MarkdownPage holds the data associated with a single Markdown file.
 
-    Attemtps to load a file from its path at instatiation before processing it to
+    Attempts to load a file from its path at instantiation before processing it to
     populate chunks, embeddings, metadata, and ids.
     """
 
-    def __init__(self, path: Path|None, data: str | None = None) -> None:
+    def __init__(self, path: Path | None, data: str | None = None) -> None:
         """
         Loads and processes the markdown file at the provided Path.
         Assumes the file is in the same format as in the Noted project.
@@ -73,7 +74,7 @@ class MarkdownPage:
 
     def _get_textual_metadata(self) -> dict[str, list[str]]:
         """
-        Scans the page_content for metadata embeded in the text.
+        Scans the page_content for metadata embedded in the text.
 
         Currently seeks keywords, speakers, present as defined in the Noted project.
         Returns:
@@ -88,19 +89,25 @@ class MarkdownPage:
                 break
             line = line.strip("<?>")  # remove <? keywords: x,y,z ?> encoding markers
             if "keywords:" in line:
-                items = [item.strip(" :?>") for item in line[len("keywords:") :].split(",")]
+                items = [
+                    item.strip(" :?>") for item in line[len("keywords:") :].split(",")
+                ]
                 result["keywords"] = items
             elif "speakers:" in line:
-                items = [item.strip(" :?>") for item in line[len("speakers:") :].split(",")]
+                items = [
+                    item.strip(" :?>") for item in line[len("speakers:") :].split(",")
+                ]
                 result["speakers"] = items
             elif "present:" in line:
-                items = [item.strip(" :>?") for item in line[len("present:") :].split(",")]
+                items = [
+                    item.strip(" :>?") for item in line[len("present:") :].split(",")
+                ]
                 result["present"] = items
         return result
 
     def _create_metadata(self) -> dict[str, Any]:
         """
-        Creates metadata for this page using provided data.  Attempts to include the metada embdedded in the page_content.
+        Creates metadata for this page using provided data.  Attempts to include the metadata embedded in the page_content.
 
         Returns:
             dict[str, Any]: metadata for this Markdown page.
@@ -131,3 +138,43 @@ class MarkdownPage:
         """
         for i in range(len(self.chunks)):
             self.ids.append(f"{self.path.name}|{self.created.date()}|{i}")
+
+
+class MarkdownDirectory:
+    """
+    Handles all of the Markdown files in a given directory
+    """
+
+    def __init__(self, path: Path):
+        self.path = path
+        assert self.path.is_dir()
+        self.file_list = self.path.glob("*.md")
+        self.pages = self._load_pages()
+        logger.info("Read %d Markdown pages" % len(self.pages))
+
+    def _load_pages(self) -> list[MarkdownPage]:
+        """
+        load_pages reads the files in the directory into Markdown page objects
+        """
+        pages: list[MarkdownPage] = []
+        for file in self.file_list:
+            pages.append(MarkdownPage(path=file))
+        return pages
+
+    def store_in_chroma(self, collection: Collection) -> None:
+        # need to create lists of ids, documents, metadatas
+        for i in tqdm(range(len(self.pages)), ncols=50):
+            page = self.pages[i]
+            documents = []
+            ids = []
+            metadatas = []
+            for i, chunk in enumerate(page.chunks):
+                documents.append(chunk[i])
+                metadatas.append(page.metadata)
+                ids.append(page.ids[i])
+            collection.add(ids=ids, documents=documents, metadatas=metadatas)
+        logger.info("Stored %d pages in collection [%s]" % ((self.page_count), collection.name))
+
+    @property
+    def page_count(self) -> int:
+        return len(self.pages)

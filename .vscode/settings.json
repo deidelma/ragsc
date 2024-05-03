@@ -4,6 +4,8 @@
         "DATAPATH",
         "dotenv",
         "langchain",
+        "metadatas",
+        "ncols",
         "openai",
         "ragsc",
         "tqdm"
