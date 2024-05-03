@@ -165,3 +165,4 @@ data/
 .bash_history
 .viminfo
 chroma_data/
+.idea/
