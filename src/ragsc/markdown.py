@@ -7,6 +7,8 @@ Copyright 2024, David Eidelman. MIT License.
 """
 
 from datetime import datetime
+from importlib import metadata
+import json
 from pathlib import Path
 from typing import Any
 
@@ -145,7 +147,8 @@ class MarkdownDirectory:
     Handles all of the Markdown files in a given directory
     """
 
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, max_pages=-1):
+        self.max_pages = max_pages
         self.path = path
         assert self.path.is_dir()
         self.file_list = self.path.glob("*.md")
@@ -157,21 +160,49 @@ class MarkdownDirectory:
         load_pages reads the files in the directory into Markdown page objects
         """
         pages: list[MarkdownPage] = []
-        for file in self.file_list:
+        file_list = list(self.file_list)
+        if self.max_pages > 0:
+            file_list = file_list[:self.max_pages]
+        for file in file_list:
             pages.append(MarkdownPage(path=file))
         return pages
+
+    @staticmethod
+    def _normalize_metadata(input: dict[str, Any]) -> dict[str,Any]:
+        result = {}
+        for k in input:
+            if isinstance(input[k],list):
+                result[k] = json.dumps(input[k])
+            else:
+                result[k] = input[k]
+        return result
+
+    @property
+    def _chunk_count(self):
+        chunks=0
+        for page in self.pages:
+            chunks += len(page.chunks)
+        return chunks
 
     def store_in_chroma(self, collection: Collection) -> None:
         # need to create lists of ids, documents, metadatas
         for i in tqdm(range(len(self.pages)), ncols=50):
             page = self.pages[i]
+            # skip empty files
+            if len(page.page_content) == 0:
+                continue
             documents = []
             ids = []
             metadatas = []
-            for i, chunk in enumerate(page.chunks):
-                documents.append(chunk[i])
-                metadatas.append(page.metadata)
-                ids.append(page.ids[i])
+            for j, chunk in enumerate(page.chunks):
+                documents.append(chunk)
+                # if len(page.metadata) == 0:
+                    # metadatas.append(None)
+                # else:
+                metadatas.append(self._normalize_metadata(page.metadata))
+                ids.append(page.ids[j])
+            assert len(ids) ==len(documents)
+            assert len(ids) == len(metadatas)
             collection.add(ids=ids, documents=documents, metadatas=metadatas)
         logger.info("Stored %d pages in collection [%s]" % ((self.page_count), collection.name))
 

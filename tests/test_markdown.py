@@ -1,6 +1,9 @@
 from pathlib import Path
 
+import chromadb
+from loguru import logger
 from pytest import fixture
+
 from ragsc.markdown import MarkdownDirectory, MarkdownPage
 
 
@@ -120,3 +123,13 @@ def test_split_page():
 def test_markdown_directory(data_directory, data_file_list):
     folder = MarkdownDirectory(data_directory)
     assert folder.page_count == len(data_file_list)
+
+
+def test_store_markdown_directory(data_directory):
+    max_pages = 10
+    folder = MarkdownDirectory(data_directory, max_pages=max_pages)
+    # logger.error(folder.pages[max_pages-1].metadata)
+    client = chromadb.Client()
+    collection = client.get_or_create_collection("ragsc")
+    folder.store_in_chroma(collection=collection)
+    assert collection.count() == folder._chunk_count
