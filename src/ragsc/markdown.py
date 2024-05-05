@@ -17,7 +17,7 @@ from chromadb.api.models.Collection import Collection
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
 
-# from tqdm import tqdm
+from tqdm import tqdm
 from more_itertools import batched
 
 
@@ -123,7 +123,7 @@ class MarkdownPage:
         m.update(self._get_textual_metadata())
         return m
 
-    def split_page(self, chunk_size=512, chunk_overlap=26) -> None:
+    def split_page(self, chunk_size=256, chunk_overlap=15) -> None:
         """
         Creates chunks from the page data
         """
@@ -209,7 +209,7 @@ class MarkdownDirectory:
             total_chunks = 0
             for page in page_list:
                 total_chunks += page.chunk_count
-            for page in page_list:
+            for page in tqdm(page_list):
                 # skip empty files
                 if len(page.chunks) == 0 or len(page.page_content) == 0:
                     continue

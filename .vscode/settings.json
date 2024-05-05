@@ -6,6 +6,7 @@
         "DATAPATH",
         "demetra",
         "dotenv",
+        "hnsw",
         "IHPP",
         "langchain",
         "metadatas",
