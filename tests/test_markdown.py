@@ -1,9 +1,7 @@
 from pathlib import Path
 
 import chromadb
-from loguru import logger
 from pytest import fixture
-
 from ragsc.markdown import MarkdownDirectory, MarkdownPage
 
 

@@ -2,13 +2,20 @@
     "cSpell.words": [
         "chromadb",
         "Chunker",
+        "cmarc",
         "DATAPATH",
+        "demetra",
         "dotenv",
+        "IHPP",
         "langchain",
         "metadatas",
+        "munaca",
         "ncols",
+        "nosuchfile",
         "openai",
         "ragsc",
+        "SACE",
+        "SPGH",
         "tqdm"
     ]
 }
