@@ -6,18 +6,19 @@ tools for the chunking, embedding, and storing of markdown data
 Copyright 2024, David Eidelman. MIT License.
 """
 
-from datetime import datetime
-from importlib import metadata
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
 import markdown
 from bs4 import BeautifulSoup
 from chromadb.api.models.Collection import Collection
-from langchain_text_splitters import CharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from loguru import logger
-from tqdm import tqdm
+
+# from tqdm import tqdm
+from more_itertools import batched
 
 
 class MarkdownPage:
@@ -59,6 +60,10 @@ class MarkdownPage:
         self.split_page()
         # self.embed_chunks()
         self.assign_ids()
+
+    @property
+    def chunk_count(self) -> int:
+        return len(self.chunks)
 
     def _as_plain_text(self) -> str:
         """
@@ -118,14 +123,24 @@ class MarkdownPage:
         m.update(self._get_textual_metadata())
         return m
 
-    def split_page(self, chunk_size=256, chunk_overlap=25) -> None:
+    def split_page(self, chunk_size=512, chunk_overlap=26) -> None:
         """
         Creates chunks from the page data
         """
-        splitter = CharacterTextSplitter(
-            separator="\n", chunk_size=chunk_size, chunk_overlap=chunk_overlap
+        splitter = RecursiveCharacterTextSplitter(
+            chunk_size=chunk_size, chunk_overlap=chunk_overlap, is_separator_regex=False
         )
         self.chunks = splitter.split_text(self.text)
+        #
+        # validate chunk sizes
+        #
+        for chunk in self.chunks:
+            if len(chunk) > chunk_size:
+                logger.error(
+                    f"chunk size ({len(chunk)} is greater than expected chunk size:{chunk_size})"
+                )
+                logger.error(f"Current chunk:\n\n {chunk}")
+                raise ValueError("Chunk size too large")
 
     # def embed_chunks(self) -> None:
     #     """
@@ -162,16 +177,16 @@ class MarkdownDirectory:
         pages: list[MarkdownPage] = []
         file_list = list(self.file_list)
         if self.max_pages > 0:
-            file_list = file_list[:self.max_pages]
+            file_list = file_list[: self.max_pages]
         for file in file_list:
             pages.append(MarkdownPage(path=file))
         return pages
 
     @staticmethod
-    def _normalize_metadata(input: dict[str, Any]) -> dict[str,Any]:
+    def _normalize_metadata(input: dict[str, Any]) -> dict[str, Any]:
         result = {}
         for k in input:
-            if isinstance(input[k],list):
+            if isinstance(input[k], list):
                 result[k] = json.dumps(input[k])
             else:
                 result[k] = input[k]
@@ -179,33 +194,54 @@ class MarkdownDirectory:
 
     @property
     def _chunk_count(self):
-        chunks=0
+        chunks = 0
         for page in self.pages:
             chunks += len(page.chunks)
         return chunks
 
     def store_in_chroma(self, collection: Collection) -> None:
         # need to create lists of ids, documents, metadatas
-        for i in tqdm(range(len(self.pages)), ncols=50):
-            page = self.pages[i]
-            # skip empty files
-            if len(page.page_content) == 0:
-                continue
-            documents = []
-            ids = []
-            metadatas = []
-            for j, chunk in enumerate(page.chunks):
-                documents.append(chunk)
-                # if len(page.metadata) == 0:
-                    # metadatas.append(None)
-                # else:
-                metadatas.append(self._normalize_metadata(page.metadata))
-                ids.append(page.ids[j])
-            assert len(ids) ==len(documents)
-            assert len(ids) == len(metadatas)
-            collection.add(ids=ids, documents=documents, metadatas=metadatas)
-        logger.info("Stored %d pages in collection [%s]" % ((self.page_count), collection.name))
+        # for i in tqdm(range(len(self.pages)), ncols=50):
+        #     page = self.pages[i]
+
+        def store_list_of_pages(page_list: list[MarkdownPage]) -> None:
+            processed_chunks = 0
+            total_chunks = 0
+            for page in page_list:
+                total_chunks += page.chunk_count
+            for page in page_list:
+                # skip empty files
+                if len(page.chunks) == 0 or len(page.page_content) == 0:
+                    continue
+                documents = []
+                ids = []
+                metadatas = []
+                for j, chunk in enumerate(page.chunks):
+                    documents.append(chunk)
+                    metadatas.append(self._normalize_metadata(page.metadata))
+                    ids.append(page.ids[j])
+                assert len(ids) == len(documents)
+                assert len(ids) == len(metadatas)
+                collection.add(ids=ids, documents=documents, metadatas=metadatas)
+                processed_chunks += len(documents)
+            logger.info(
+                "Processed %d chunks out of %d chunks"
+                % (processed_chunks, total_chunks)
+            )
+
+        for pages in batched(self.pages, 150):
+            store_list_of_pages(page_list=list(pages))
+
+        logger.info(
+            "Stored %d pages in collection [%s]" % ((self.page_count), collection.name)
+        )
 
     @property
     def page_count(self) -> int:
         return len(self.pages)
+
+    def chunk_count(self) -> int:
+        sum = 0
+        for page in self.pages:
+            sum += page.chunk_count
+        return sum

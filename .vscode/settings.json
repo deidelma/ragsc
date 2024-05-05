@@ -1,6 +1,7 @@
 {
     "cSpell.words": [
         "chromadb",
+        "Chunker",
         "DATAPATH",
         "dotenv",
         "langchain",
