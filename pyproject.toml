@@ -22,6 +22,8 @@ markdown = "^3.6"
 sentence-transformers = "^2.7.0"
 polars = "^0.20.23"
 more-itertools = "^10.2.0"
+scanpy = "^1.10.1"
+anndata = "^0.10.7"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"

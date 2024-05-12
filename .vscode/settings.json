@@ -14,8 +14,10 @@
         "ncols",
         "nosuchfile",
         "openai",
+        "pgvector",
         "ragsc",
         "SACE",
+        "Scanpy",
         "SPGH",
         "tqdm"
     ]
