@@ -1,5 +1,7 @@
 {
     "cSpell.words": [
+        "ATAC",
+        "Bioconductor",
         "chromadb",
         "Chunker",
         "cmarc",
@@ -18,6 +20,7 @@
         "ragsc",
         "SACE",
         "Scanpy",
+        "scvi",
         "SPGH",
         "tqdm"
     ]

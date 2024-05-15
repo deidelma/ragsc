@@ -24,6 +24,8 @@ polars = "^0.20.23"
 more-itertools = "^10.2.0"
 scanpy = "^1.10.1"
 anndata = "^0.10.7"
+jupyterlab-lsp = "^5.1.0"
+python-lsp-server = {extras = ["all"], version = "^1.11.0"}
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.4.1"
