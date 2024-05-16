@@ -167,5 +167,5 @@ data/
 chroma_data/
 .idea/
 node_modules/
-.RData/
-.Rhistory/
+.Rhistory
+.RData
