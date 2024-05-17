@@ -31,6 +31,7 @@ dependencies:
   - r-crayon
   - r-cyclocomp
   - r-desc
+  - r-devtools
   - r-digest
   - r-ellipsis
   - r-evaluate
@@ -93,3 +94,4 @@ dependencies:
     - langchain-openai
     - chromadb
     - sentence-transformers
+    - anndata2ri
