@@ -68,7 +68,7 @@ dependencies:
   - r-rlang
   - r-roxygen2
   - r-rprojroot
-  - r-soupx
+  - r-soupx # appears to require manual install despite being on this list
   - r-stringi
   - r-stringr
   - r-styler
@@ -95,3 +95,5 @@ dependencies:
     - chromadb
     - sentence-transformers
     - anndata2ri
+    - igraph
+    - leidenalg
