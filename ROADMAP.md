@@ -14,4 +14,4 @@ because of the need to tune parameters interactively
 2. Test out the different methods of automatic annotation
 3. Consider how RAG might enhance those methods
 4. Explore alternative clustering algorithms making use of scvi-tools and SnapATAC2
-
+5. Create makefile to ensure proper conda env initializion and creation of both python and conda kernels for jupyter lab
