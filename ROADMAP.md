@@ -16,7 +16,6 @@ because of the need to tune parameters interactively
 4. Explore alternative clustering algorithms making use of scvi-tools and SnapATAC2
 5. Create makefile to ensure proper conda env initializion and creation of both python and conda kernels for jupyter lab
 
-## manual loading (20240517)
+## completed containerization (20240519)
 
-1. Rscript -e "install.packages("irlba")
-2. Rscript -e "install.packages("SoupX")
+Successfully created an initial Docker container with all the prerequisites for the both single cell and large language model work.

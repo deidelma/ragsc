@@ -2,3 +2,5 @@ langchain-community
 langchain-openai
 chromadb
 sentence-transformers
+igraph
+leidenalg
