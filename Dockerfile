@@ -31,4 +31,3 @@ RUN python -m pip install ipykernel
 
 RUN Rscript -e "devtools::install_github('IRkernel/IRkernel', force=TRUE);IRkernel::installspec()"
 
-# CMD /bin/bash
