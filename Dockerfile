@@ -3,11 +3,6 @@ FROM quay.io/jupyter/datascience-notebook
 
 USER jovyan
 
-# RUN conda install -y 'flake8' && \
-#     conda clean --all -f -y && \
-#     fix-permissions "${CONDA_DIR}" && \
-#     fix-permissions "/home/${NB_USER}"
-
 COPY --chown=${NB_UID}:${NB_GID} conda-requirements.txt /tmp/
 
 RUN conda install --yes -c conda-forge --file /tmp/conda-requirements.txt  && \
@@ -31,3 +26,5 @@ RUN python -m pip install ipykernel
 
 RUN Rscript -e "devtools::install_github('IRkernel/IRkernel', force=TRUE);IRkernel::installspec()"
 
+WORKDIR /home/jovyan
+USER root
