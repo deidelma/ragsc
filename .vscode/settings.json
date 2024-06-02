@@ -1,5 +1,6 @@
 {
     "cSpell.words": [
+        "adata",
         "ATAC",
         "Bioconductor",
         "chromadb",
@@ -10,6 +11,7 @@
         "dotenv",
         "hnsw",
         "IHPP",
+        "iloc",
         "langchain",
         "metadatas",
         "munaca",
