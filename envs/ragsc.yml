@@ -1,0 +1,30 @@
+#
+# as of June 12, 2024 this is definitive environment description for the ragsc project
+#
+name: ragsc
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.9.19
+  - pip
+  - numpy
+  - pytorch
+  - torchaudio
+  - torchvision
+  - pytorch-cuda=11.8
+  - nvim
+  - jupyterlab
+  - scanpy
+  - pip:
+    - scvi-tools
+    - scarches
+    - celltypist
+    - loguru
+    - python-dotenv
+    - langchain-community
+    - langchain-openai
+variables:
+  SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL: True
