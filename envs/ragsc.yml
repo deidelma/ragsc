@@ -26,5 +26,7 @@ dependencies:
     - python-dotenv
     - langchain-community
     - langchain-openai
+    - chromadb
+    - pytest
 variables:
   SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL: True
