@@ -21,7 +21,11 @@ def process_data(data_path_str: str) -> None:
     if data_path.exists() and data_path.is_dir():
         embed.process_data(data_path)
     else:
-        logger.error("{} is not a valid path to a directory".format(data_path.absolute().as_posix()))
+        logger.error(
+            "{} is not a valid path to a directory".format(
+                data_path.absolute().as_posix()
+            )
+        )
         sys.exit(1)
 
 
