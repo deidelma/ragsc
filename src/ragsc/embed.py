@@ -42,3 +42,5 @@ def process_data(path: PathLike):
     logger.info(f"total chunks: {sum_documents(docs)}")
     embed_documents(docs)
     return docs
+
+
