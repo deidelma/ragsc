@@ -48,11 +48,6 @@ def download_site(url):
         print(f"Read {len(response.content)} from {url}")
 
 
-def download_all_sites(sites):
-    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-        executor.map(download_site, sites)
-
-
 empty_json = json.dumps([])
 
 def get_embedding(cell_no, gene_signature)-> Tuple[int,str]:
@@ -70,21 +65,36 @@ def get_embedding(cell_no, gene_signature)-> Tuple[int,str]:
         logger.error("error reading embedding from openai ({}) {}", e, response.content)
         return cell_no, empty_json
 
-def process_concurrently(df: pd.DataFrame):
+def process_concurrently(df: pd.DataFrame, start:int = 0, num_rows:int = 5):
     futures = {}
     for row in range(1):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures[row] = executor.submit(get_embedding, row, df.signature[row])
 
     for future in futures:
-        print(future, len(futures[future].result()[1]))
+        df.embeddings[future]= json.dumps(futures[future].result()[1])
 
 def process_embeddings(df: pd.DataFrame):
-    rows = df.shape[0]
-    rows = 5
-    for i in range(rows):
+    for i in range(df.shape[0]):
         e = get_embedding(i, df.signature[i])
         df.embeddings[i] = e
+
+
+def batch_process(df: pd.DataFrame, batch_size:int):
+    total =0
+    n_rows = df.shape[0]
+    batch_size = 100
+    cycles = (n_rows // batch_size)
+    extra = n_rows - cycles * batch_size
+    logger.info("Processing {} rows, divided into {} batches of size {}, followed by remaining {} rows", n_rows, cycles, batch_size, extra)
+    # process the batches up to the remainder
+    for start_index in range(0, (cycles+1) * batch_size, batch_size):
+        process_concurrently(df, start_index, batch_size)
+        if start_index % batch_size == 0:
+            print(f"{start_index}")
+    print(f"adding {extra} from {cycles * batch_size} to {cycles * batch_size + extra}")
+    # process the remainder
+    process_concurrently(df, cycles * batch_size, extra )
 
 def main():
     global api_key
@@ -94,8 +104,8 @@ def main():
     api_key = os.getenv("OPENAI_API_KEY")
     logger.debug("API_KEY:{}",api_key)
     df = load_dataset()
-    # # process_embeddings(df)
-    process_concurrently(df)
+    # process_concurrently(df)
+    batch_process(df, 500)
     # # print(df.head())
     logger.info("shutting down")
 
