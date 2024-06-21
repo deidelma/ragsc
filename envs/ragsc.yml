@@ -18,6 +18,12 @@ dependencies:
   - nvim
   - jupyterlab
   - scanpy
+  - r
+  - r-tidyverse
+  - r-languageserver
+  - r-irkernel
+  - r-httpgd
+  - radian
   - pip:
     - scvi-tools
     - scarches
