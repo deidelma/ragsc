@@ -24,6 +24,7 @@ dotenv.load_dotenv(".env")
 api_key = ""
 thread_local = threading.local()
 INPUT_FILE = "data/sigs.csv"
+OUTPUT_FILE= "data/embeds.csv"
 
 
 def load_dataset() -> pd.DataFrame:
@@ -163,8 +164,8 @@ def save_dataset(df: pd.DataFrame):
     Args:
         df (pd.DataFrame): The dataframe to save to disk.
     """
-    data_file = Path(INPUT_FILE)
-    bu_file = Path(INPUT_FILE + ".bak")
+    data_file = Path(OUTPUT_FILE)
+    bu_file = Path(OUTPUT_FILE + ".bak")
     logger.info("saving data file: {} backing up to: {}", data_file, bu_file)
     if data_file.exists():
         if bu_file.exists():
