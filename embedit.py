@@ -96,7 +96,7 @@ def process_concurrently(df: pd.DataFrame, start: int = 0, num_rows: int = 5) ->
     for future in futures:
         row_no, embedding = futures[future].result()
         embedding = json.dumps(embedding)
-        logger.debug("row no {} embedding {}", row_no, embedding[0:10])
+        logger.trace("row no {} embedding {}", row_no, embedding[0:10])
         df.embeddings[row_no] = embedding
 
 
@@ -183,7 +183,7 @@ def main():
     logger.debug("API_KEY:{}", api_key)
     df = load_dataset()
     loaded_time = time.perf_counter()
-    logger.info("loaded {} in {:.3f} seconds", df, (loaded_time - start_time))
+    logger.info("loaded {} in {:.3f} seconds", df.shape, (loaded_time - start_time))
     # df = df[df.index < 37]
     batch_process(df, 100)
     batch_time = time.perf_counter()
