@@ -1,0 +1,35 @@
+#
+# environment for use with python based analysis once
+# embedding completed.
+# 
+# this environment may work for other analyses but has not
+# been tested
+#
+name: chroma
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - numpy
+  - pytorch
+  - torchaudio
+  - torchvision
+  - nvim
+  - jupyterlab
+  - scanpy
+  - radian
+  - pytest
+  - ruff
+  - pip:
+    - loguru
+    - python-dotenv
+    - langchain-community
+    - langchain-openai
+    - chromadb
+    - pyarrow
+    - fastparquet
+    
