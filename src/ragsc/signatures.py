@@ -223,7 +223,7 @@ def get_gene_signature(
     )
     if verbose:
         print(f"Found {len(genes)} genes after filtering.")
-    logger.debug("returning {} genes as the signature of this cell", len(genes))
+    logger.trace("returning {} genes as the signature of this cell", len(genes))
     return genes
 
 
