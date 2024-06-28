@@ -36,4 +36,36 @@ def convert_to_parquet(csv_path : Union[Path, str], parquet_path: Union[Path, st
         logger.exception(e)
     else:
         logger.info("wrote {} to disk", parquet_path)
-         
+
+
+
+def load_dataset(input_path:Union[Path,str], separator=',') -> pd.DataFrame:
+    """Loads a dataframe from the provided path.  Ensures that the 
+    path exists and is in an acceptable format.
+
+    Args:
+        input_path (Union[Path,str]): The input path as a string or Path.
+        separator (str, optional): The separator for csv or tsv files. Defaults to ','.
+
+    Raises:
+        IOError: Raised when file not found.
+        ValueError: Raised when input file is not of an acceptable type.
+
+    Returns:
+        pd.DataFrame: The loaded data frame. 
+    """
+    if isinstance(input_path, str):
+        input_path = Path(input_path)
+    if not input_path.exists():
+        logger.error("unable to find {}",input_path)
+        raise IOError("file %s not found" % input_path.as_posix())
+    suffix = input_path.suffix.lower()
+    if suffix in ['.csv','.tsv']:
+        df = pd.read_csv(input_path, sep=separator)
+    elif suffix == '.parquet':
+        df = pd.read_parquet(input_path)
+    else:
+        logger.error('unable to read file with suffix {}',input_path.suffix)
+        raise ValueError("invalid file type: '%s'" % input_path.suffix)
+    logger.info("read {}", input_path)
+    return df

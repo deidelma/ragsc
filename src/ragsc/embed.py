@@ -65,6 +65,9 @@ def get_embeddings_concurrently(df: pd.DataFrame, api_key:str, start: int = 0, n
         start (int, optional): The starting row. Defaults to 0.
         num_rows (int, optional): The number of rows to process. Defaults to 5.
     """
+    if not "embeddings" in df.columns:
+        logger.trace("creating embeddings column in dataframe")
+        df['embeddings'] = ['' for i in range(df.shape[0])]
     futures = {}
     for row in range(start, start + num_rows):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
