@@ -2,6 +2,8 @@
 subset.py
 
 script to provide a CLI for the work done in subset.ipynb
+
+Copyright 2024 David Eidelman, MIT License.
 """
 
 import sys
