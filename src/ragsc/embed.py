@@ -1,22 +1,22 @@
-""" 
+"""
 ragsc.embed.py
 
 module to handle embedding of gene signatures using OpenAI
 
 """
+
 import concurrent.futures
 import json
-from pathlib import Path
-import threading 
+import threading
 import time
-from typing import Union
 
-import requests 
+import requests
 import pandas as pd
 from loguru import logger
 
-thread_local=threading.local()
+thread_local = threading.local()
 empty_json = json.dumps([])
+
 
 def get_session():
     if not hasattr(thread_local, "session"):
@@ -52,11 +52,13 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
         logger.error("error reading embedding from openai ({}) {}", e, response.content)
         return cell_no, empty_json
 
-    
-def get_embeddings_concurrently(df: pd.DataFrame, api_key:str, start: int = 0, num_rows: int = 5) -> None:
+
+def get_embeddings_concurrently(
+    df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5
+) -> None:
     """Get the embeddings for the rows in the dataframe using the provided parameters.
 
-    N.B. This modifies the provided dataframe by assigning 
+    N.B. This modifies the provided dataframe by assigning
     the embeddings to the column "embeddings" in the dataframe as a side effect.
 
     Args:
@@ -65,13 +67,15 @@ def get_embeddings_concurrently(df: pd.DataFrame, api_key:str, start: int = 0, n
         start (int, optional): The starting row. Defaults to 0.
         num_rows (int, optional): The number of rows to process. Defaults to 5.
     """
-    if not "embeddings" in df.columns:
+    if "embeddings" not in df.columns:
         logger.trace("creating embeddings column in dataframe")
-        df['embeddings'] = ['' for i in range(df.shape[0])]
+        df["embeddings"] = ["" for i in range(df.shape[0])]
     futures = {}
     for row in range(start, start + num_rows):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            futures[row] = executor.submit(get_embedding, row, df.signature[row], api_key)
+            futures[row] = executor.submit(
+                get_embedding, row, df.signature[row], api_key
+            )
 
     for future in futures:
         row_no, embedding = futures[future].result()
@@ -80,7 +84,7 @@ def get_embeddings_concurrently(df: pd.DataFrame, api_key:str, start: int = 0, n
         df.embeddings[row_no] = embedding
 
 
-def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key:str):
+def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
     """Process the rows of the provided dataframe as batches to load
     embeddings into the provided dataframe.
 
@@ -104,15 +108,17 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key:str):
     # process the batches up to the remainder
     if cycles > 0:
         logger.debug("running from 0 to {} by {}", cycles * batch_size, batch_size)
-        t1 =time.perf_counter()
+        t1 = time.perf_counter()
         for start_index in range(0, cycles * batch_size, batch_size):
             if start_index >= n_rows:
                 break
-            get_embeddings_concurrently(df, api_key=api_key, start=start_index, num_rows=batch_size)
+            get_embeddings_concurrently(
+                df, api_key=api_key, start=start_index, num_rows=batch_size
+            )
             if start_index > 0 and start_index % batch_size == 0:
                 logger.info(f"Processed {start_index} rows")
         t2 = time.perf_counter()
-        logger.info("elapsed time for cycles: {:.3f}", t2-t1)
+        logger.info("elapsed time for cycles: {:.3f}", t2 - t1)
     # process the remainder
     if extra > 0:
         logger.debug(
@@ -123,10 +129,13 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key:str):
             cycles * batch_size,
         )
         t3 = time.perf_counter()
-        get_embeddings_concurrently(df, api_key = api_key, start=cycles * batch_size, num_rows=extra)
+        get_embeddings_concurrently(
+            df, api_key=api_key, start=cycles * batch_size, num_rows=extra
+        )
         t4 = time.perf_counter()
-        logger.info("elapsed time for extras: {:.3f}", t4-t3)
+        logger.info("elapsed time for extras: {:.3f}", t4 - t3)
     logger.info(
-        "added {extra} rows from {cycles * batch_size} to {cycles * batch_size + extra}")
+        "added {extra} rows from {cycles * batch_size} to {cycles * batch_size + extra}"
+    )
     t5 = time.perf_counter()
-    logger.info("batch elapsed time {:.3f}", t5-t0)
+    logger.info("batch elapsed time {:.3f}", t5 - t0)
