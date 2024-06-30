@@ -13,6 +13,7 @@ import click
 import pandas as pd
 from loguru import logger
 from ragsc import utils
+from ragsc import embed as em
 
 
 def get_cluster_names(adata: ad.AnnData, criterion="leiden_2") -> list[str]:
@@ -258,7 +259,7 @@ def process_clusters(
     return sigs
 
 
-def process_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
+def process_cluster_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
     logger.info("processing {} cells {} genes", adata.shape[0], adata.shape[1])
     # get highly variable genes
     b = adata.var[adata.var.highly_variable]
@@ -290,6 +291,12 @@ def process_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
     return df
 
 
+def embed_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    api_key = utils.get_api_key()
+    em.batch_process_embeddings(df, batch_size=200, api_key=api_key)
+    return df
+
+
 @click.command()
 @click.option(
     "--source",
@@ -298,11 +305,12 @@ def process_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
 )
 @click.option(
     "--target",
-    default="data/subset.parquet",
+    default="data/subset_embedded.parquet",
     help="file with embeddings to test against database",
 )
 @click.option("--test/--no-test", default=False, help="activates test mode")
 def chroma(**kwargs):
+    logger.add("logs/subset_{time}.log")
     input_file = Path(kwargs["source"])
     target = Path(kwargs["target"])
     testing = kwargs["test"]
@@ -318,14 +326,22 @@ def chroma(**kwargs):
         logger.exception(e)
         sys.exit(1)
     logger.info("processing input data")
-    df = process_data(adata)
+    df = process_cluster_data(adata)
     logger.info("completed processing")
     logger.info(
-        "result dataframe with {} rows and {} columns", df.shape[0], df.shape[1]
+        "subset dataframe with {} rows and {} columns", df.shape[0], df.shape[1]
     )
     if testing:
         logger.debug(df.columns)
         logger.debug(df.head())
+
+    try:
+        df = embed_dataframe(df)
+    except Exception as e:
+        logger.error("encountered unexpected error while embedding dataframe")
+        logger.exception("openai embedding raised exception: {}", e)
+        sys.exit(1)
+
     try:
         utils.save_parquet(df=df, output_path=target)
     except Exception as e:
