@@ -262,6 +262,18 @@ def process_clusters(
 
 
 def process_cluster_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
+    """
+    Using the input AnnData, this batch processes the analysis gene expression by cluster.
+    The analysis only handles cells marked as "highly variable".  Cells are then
+    partitioned into clusters and the expression pattern in each cluster determined.
+
+    Args:
+        adata (ad.AnnData): The input data.
+        expression_threshold (float, optional): The minimum expression level analyzed. Defaults to 1.5.
+
+    Returns:
+        pd.DataFrame: A dataframe listing the signatures of each cluster.
+    """
     logger.info("processing {} cells {} genes", adata.shape[0], adata.shape[1])
     # get highly variable genes
     b = adata.var[adata.var.highly_variable]
@@ -277,7 +289,10 @@ def process_cluster_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.Data
         len(cluster_table),
     )
     redundant_genes = find_common_genes(
-        adata, cluster_table=cluster_table, expression_threshold=expression_threshold
+        adata,
+        cluster_table=cluster_table,
+        expression_threshold=expression_threshold,
+        repeat_limit=3,
     )
     logger.info("found {} redundant genes", len(redundant_genes))
 
@@ -294,6 +309,15 @@ def process_cluster_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.Data
 
 
 def embed_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Uses the OpenAI api to embed the signatures in the provided dataframe.
+
+    Args:
+        df (pd.DataFrame): The input data.
+
+    Returns:
+        pd.DataFrame: An updated dataframe including the embedding data.
+    """
     api_key = utils.get_api_key()
     em.batch_process_embeddings(df, batch_size=200, api_key=api_key)
     return df
@@ -310,12 +334,18 @@ def embed_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     default="data/subset_embedded.parquet",
     help="file with embeddings to test against database",
 )
+@click.option(
+    "--ratio",
+    help="proportion to use when splitting off a training subset",
+    default=0.5,
+)
 @click.option("--test/--no-test", default=False, help="activates test mode")
 def chroma(**kwargs):
     logger.add("logs/subset_{time}.log")
     input_file = Path(kwargs["source"])
     target = Path(kwargs["target"])
     testing = kwargs["test"]
+    ratio = kwargs["ratio"]
 
     if not input_file.exists():
         logger.error("unable to find input file: {}", input_file)
@@ -338,7 +368,14 @@ def chroma(**kwargs):
         logger.debug(df.head())
 
     try:
-        df = embed_dataframe(df)
+        if testing:
+            logger.debug(
+                "simulation of embedding gene signatures by calling the OpenAI api"
+            )
+            logger.debug("would have embedded {} signatures", df.shape[0])
+        else:
+            logger.info("about to embed {} gene signatures", df.shape[0])
+            df = embed_dataframe(df)
     except Exception as e:
         logger.error("encountered unexpected error while embedding dataframe")
         logger.exception("openai embedding raised exception: {}", e)
@@ -352,7 +389,20 @@ def chroma(**kwargs):
         sys.exit(1)
     else:
         logger.info("wrote dataframe to {}", target)
+
+    train_df = df.sample(frac=ratio)
+    target_df = df.drop(train_df.index)
+
+    try:
+        utils.save_parquet(train_df, "data/train.parquet", overwrite=True)
+        utils.save_parquet(target_df, "data/target.parquet", overwrite=True)
+    except Exception as e:
+        logger.error("unable to save training and target files")
+        logger.exception(e)
     logger.info("analysis complete")
+
+    # TODO:
+    # 1) Run analysis by expression threshold (): e.g. 0.0, 1.0, 1.5, 1.75, 2.0, 2.5
 
 
 if __name__ == "__main__":

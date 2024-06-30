@@ -7,6 +7,7 @@ detecting clusters
 
 from pathlib import Path
 import sys
+import datetime
 from typing import Union
 
 import chromadb
@@ -48,19 +49,19 @@ def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame) -> pd.Dat
         predicted = json.dumps(results["documents"][0])  # type: ignore
         # print(df.cluster.iloc[i], json.dumps(results['documents'][0])) # type:ignore
         out_df.predicted.iloc[i] = predicted
-        print(predicted)
+        # print(predicted)
     return out_df
 
 
 @click.command()
 @click.option(
     "--source",
-    default="data/clustered_embeddings.parquet",
+    default="data/train_embeds.parquet",
     help="file with embeddings to add to database",
 )
 @click.option(
     "--target",
-    default="data/embeds.parquet",
+    default="data/target_embeds.parquet",
     help="file with embeddings to test against database",
 )
 @click.option("--test/--no-test", default=False, help="activates test mode")
@@ -68,23 +69,47 @@ def chroma(**kwargs):
     input_file = Path(kwargs["source"])
     target_file = Path(kwargs["target"])
     testing = kwargs["test"]
-    if not input_file.exists():
-        logger.error("unable to find input file: {}", input_file)
-        sys.exit(1)
-    if not target_file.exists():
-        logger.error("unable to find input file: {}", target_file)
+
+    try:
+        collection = setup_database(input_file)
+    except Exception as e:
+        logger.debug("unexpected exception raised during database setup")
+        logger.exception(e)
         sys.exit(1)
 
-    collection = setup_database(input_file)
     logger.info("loaded database with data from {}", input_file)
-    df = utils.load_dataset(target_file)
+    try:
+        df = utils.load_dataset(target_file)
+    except Exception as e:
+        logger.debug("exception encountered while reading the target file")
+        logger.exception(e)
+        sys.exit(1)
+
+    logger.info("testing database against data from {}", target_file)
     if testing:
-        print(df.head())
+        logger.debug(df.head())
+        logger.debug("restricting analysis to 10 rows")
         df = df[df.index < 10].copy()
-    out_df = test_embeddings(collection, df)
+    try:
+        out_df = test_embeddings(collection, df)
+    except Exception as e:
+        logger.error("unexpected exception during test_embeddings")
+        logger.exception(e)
+        sys.exit(1)
     logger.info("received output dataframe with {} rows", out_df.shape[0])
     if testing:
-        print(out_df.head())
+        logger.debug(out_df.head())
+
+    try:
+        t = datetime.datetime.now()
+        ts = t.strftime("%H%M%S")
+        utils.save_parquet(
+            out_df, output_path=f"data/embed_result_{ts}.parquet", overwrite=True
+        )
+    except Exception as e:
+        logger.error("unexpected exception raised while saving output file")
+        logger.exception(e)
+        sys.exit(1)
 
 
 if __name__ == "__main__":
