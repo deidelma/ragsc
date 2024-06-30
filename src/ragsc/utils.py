@@ -7,10 +7,28 @@ Miscellaneous utility routines
 import shutil
 from pathlib import Path
 from typing import Union
+import sys
+import os
 
 import anndata as ad
 import pandas as pd
 from loguru import logger
+import dotenv
+
+API_KEY: Union[str, None] = None
+
+
+def get_api_key() -> str:
+    global API_KEY
+    if API_KEY is not None:
+        return API_KEY
+    dotenv.load_dotenv(".env")
+    if "OPENAI_API_KEY" in os.environ:
+        API_KEY = str(os.getenv("OPENAI_API_KEY"))
+    else:
+        logger.error("unable to find api key")
+        sys.exit(1)
+    return API_KEY
 
 
 def convert_to_parquet(
@@ -169,7 +187,7 @@ def save_parquet(
         bu_path = output_path.with_suffix(".bu")
         logger.info("{} exists; copying to backup path {}", output_path, bu_path)
         shutil.copy2(output_path, bu_path)
-    if output_path.exists(): # and overwrite is implicit
+    if output_path.exists():  # and overwrite is implicit
         # erase
         output_path.unlink()
     try:
