@@ -1,21 +1,15 @@
 # Roadmap
 
-## convert the project to Conda to be able to use R properly in notebooks (20240514)
+## 2024-06-30
 
-- in accordance with [Single Cell Best Practices](https://www.sc-best-practices.org/preamble.html),
-need to be able to accommodate workflows in both R and Python
-- it is important to explore Bioconductor workflows as well as Seurat
-- it is also recommended that single cell analysis be done in notebooks rather than in pipelines
-because of the need to tune parameters interactively
+need to create a loop that
 
-## next steps (20240514)
-
-1. Follow the tutorial in the Single Cell Best Practices site
-2. Test out the different methods of automatic annotation
-3. Consider how RAG might enhance those methods
-4. Explore alternative clustering algorithms making use of scvi-tools and SnapATAC2
-5. Create makefile to ensure proper conda env initializion and creation of both python and conda kernels for jupyter lab
-
-## completed containerization (20240519)
-
-Successfully created an initial Docker container with all the prerequisites for the both single cell and large language model work.
+* load the base data
+* loop across expression levels (0, 0.5, 1.0, 1.5, 2.0, 2.5)
+    * calculate signatures based on expression level
+    * eliminate "redundant genes" from signatures
+    * calculate the embeddings for the signatures
+    * divide the data into train and target
+    * store the train data into vector database
+    * compare the original cluster number to the top 5 predicted cluster numbers 
+        * graph the results
