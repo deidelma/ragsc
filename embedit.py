@@ -6,25 +6,20 @@ script to automate the embedding of gene signatures
 likely to be folded intoto ragsc.embed once completed
 """
 
-import os
-import dotenv
 import pandas as pd
 from pathlib import Path
-from typing import Union
 
 from loguru import logger
 import threading
 import time
 import shutil
 
-from ragsc import embed
+from ragsc import embed, utils
 
 
-dotenv.load_dotenv(".env")
-api_key: Union[str, None] = None
 thread_local = threading.local()
 INPUT_FILE = "data/sigs.csv"
-OUTPUT_FILE= "data/embeds.csv"
+OUTPUT_FILE = "data/embeds.csv"
 
 
 def load_dataset() -> pd.DataFrame:
@@ -37,6 +32,7 @@ def load_dataset() -> pd.DataFrame:
     df.rename(columns={old_name: "cell_id"}, inplace=True)  # type: ignore
     df["embeddings"] = ""
     return df
+
 
 def save_dataset(df: pd.DataFrame):
     """Save dataset to a csv, making a backup of the previous data file.
@@ -56,22 +52,23 @@ def save_dataset(df: pd.DataFrame):
 
 
 def main():
-    global api_key
+    # global api_key
     start_time = time.perf_counter()
     logger.info("starting up")
-    dotenv.load_dotenv(".env")
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = utils.get_api_key()
     assert api_key is not None
     logger.debug("API_KEY:{}", api_key)
-    
+
     df = load_dataset()
     loaded_time = time.perf_counter()
     logger.info("loaded {} in {:.3f} seconds", df.shape, (loaded_time - start_time))
     # df = df[df.index < 150]
-    
+
     embed.batch_process_embeddings(df, batch_size=100, api_key=api_key)
     batch_time = time.perf_counter()
-    logger.info("completed batch processing in {:.3f} secondds", (batch_time - loaded_time))
+    logger.info(
+        "completed batch processing in {:.3f} secondds", (batch_time - loaded_time)
+    )
     # print(df.head(20))
     save_dataset(df)
     save_time = time.perf_counter()
