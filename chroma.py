@@ -12,6 +12,7 @@ from typing import Union
 import chromadb
 import click
 from loguru import logger
+import numpy
 import pandas as pd
 import json
 
@@ -35,20 +36,33 @@ def test_item(df: pd.DataFrame, row: int, collection: chromadb.Collection):
     print(results)
 
 
-def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame) -> pd.DataFrame:
+def test_embeddings(
+    collection: chromadb.Collection, df: pd.DataFrame, verbose=False
+) -> pd.DataFrame:
     logger.info("testing df with {} rows", df.shape[0])
     out_df = pd.DataFrame()
     out_df["cluster"] = df.cluster
     out_df["predicted"] = ["" for i in range(df.shape[0])]
+    out_df["prediction_score"] = numpy.ndarray(shape=(df.shape[0],), dtype=int)
+    # visit each cell (i.e. row)
     for i in range(df.shape[0]):
         embedding = json.loads(df.embeddings.iloc[i])
+        if isinstance(embedding, str):
+            continue
         results: chromadb.QueryResult = collection.query(
             query_embeddings=embedding, n_results=5
         )
-        predicted = json.dumps(results["documents"][0])  # type: ignore
-        # print(df.cluster.iloc[i], json.dumps(results['documents'][0])) # type:ignore
-        out_df.predicted.iloc[i] = predicted
-        print(predicted)
+        predicted_list: list[int] = [int(x) for x in results["documents"][0]]  # type: ignore
+        predicted_str = json.dumps(predicted_list)  # type: ignore
+        out_df.predicted.iloc[i] = predicted_str
+        cluster_value = df.cluster.iloc[i]
+        predicted_score = predicted_list.count(int(cluster_value))
+        out_df.predicted_score = predicted_score
+        if cluster_value in predicted_list:
+            logger.debug("{} {} {}", i, cluster_value, predicted_list)
+
+        if verbose:
+            logger.debug(predicted_str)
     return out_df
 
 

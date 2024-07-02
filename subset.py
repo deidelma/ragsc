@@ -1,7 +1,7 @@
 """
-chroma.py
+subset.py
 
-CLI to process data from the equivalent of subset.adata, generate vector database, and test it.
+CLI to process data from the equivalent of subset.adata and produce signatures and embeddings.
 
 Copyright 2024 David Eidelman, MIT License.
 """
@@ -13,8 +13,8 @@ import anndata as ad
 import click
 import pandas as pd
 from loguru import logger
-from ragsc import signatures, utils
 from ragsc import embed as em
+from ragsc import signatures, utils
 
 
 def process_cluster_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
@@ -66,12 +66,20 @@ def embed_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     default="data/subset_embedded.parquet",
     help="file with embeddings to test against database",
 )
+@click.option(
+    "--threshold",
+    default=1.5,
+    help="gene expression threshold to include a gene in the analysis",
+)
+# @click.option("--prefix", default="", help="prefix to prepend to results")
 @click.option("--test/--no-test", default=False, help="activates test mode")
 def chroma(**kwargs):
     logger.add("logs/subset_{time}.log")
     input_file = Path(kwargs["source"])
     target = Path(kwargs["target"])
     testing = kwargs["test"]
+    threshold: float = kwargs["threshold"]
+    # prefix: str = kwargs["prefix"]
 
     if not input_file.exists():
         logger.error("unable to find input file: {}", input_file)
@@ -83,9 +91,9 @@ def chroma(**kwargs):
         logger.error("encountered error while loading file {}", input_file)
         logger.exception(e)
         sys.exit(1)
-    logger.info("processing input data")
-    df = process_cluster_data(adata)
-    logger.info("completed processing")
+    logger.info("processing input data using threshold {}", threshold)
+    df = process_cluster_data(adata, expression_threshold=threshold)
+    logger.info("completed processing data")
     logger.info(
         "subset dataframe with {} rows and {} columns", df.shape[0], df.shape[1]
     )
@@ -95,6 +103,7 @@ def chroma(**kwargs):
 
     try:
         df = embed_dataframe(df)
+        logger.info("completed embedding subset dataframe")
     except Exception as e:
         logger.error("encountered unexpected error while embedding dataframe")
         logger.exception("openai embedding raised exception: {}", e)
