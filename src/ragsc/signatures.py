@@ -6,9 +6,11 @@ supports the calculation of gene signatures from single cell RNA sequencing data
 Copyright 2024, David Eidelman.  MIT License.
 """
 
+import itertools
 from typing import Any
-import pandas as pd
+
 import anndata as ad
+import pandas as pd
 from loguru import logger
 
 
@@ -168,6 +170,7 @@ def get_gene_signature(
     adata: ad.AnnData,
     feature_index: int,
     expression_threshold=0.0,
+    max_genes_per_signature=-1,
     redundant_genes: set[str] = set(),
     verbose: bool = False,
 ) -> dict[str, float]:
@@ -178,6 +181,7 @@ def get_gene_signature(
         adata (ad.AnnData): The AnnData containing the cells.  Assume that only highly variable genes have been provided.
         feature_index (int): The index of the cell to be measured
         expression_threshold (float, optional): The minimum expression level. Defaults to 0.0, which returns all non-zero genes.
+        max_genes_per_signature (int, optional): The maximum number of genes to include in a signature. Defaults to -1 (accept all genes).
         redundant_genes (set[str], optional): Genes to be filtered out from the final result. Defaults to the empty set.
         verbose (bool, optional): Print intermediated data to standard output. Defaults to False.
     Returns:
@@ -193,7 +197,7 @@ def get_gene_signature(
     gene_data = adata.X[feature_index].copy()  # type: ignore
     logger.trace("processing {} genes", len(gene_data))
     if verbose:
-        print(f"Started with {len(gene_data)} genes")
+        logger.debug("Started with {} genes", len(gene_data))
     # calculate the mask to find gene subset
     b = gene_data > expression_threshold
     expression = gene_data[b]
@@ -222,8 +226,13 @@ def get_gene_signature(
         "{} genes remain after removing mitochondrial genes (MT-*)", len(genes)
     )
     if verbose:
-        print(f"Found {len(genes)} genes after filtering.")
+        logger.debug("Found {} genes after filtering.", len(genes))
     logger.trace("returning {} genes as the signature of this cell", len(genes))
+    if max_genes_per_signature > 0:
+        logger.trace("max number of genes per signature is {}", max_genes_per_signature)
+        genes = dict(itertools.islice(genes.items(), max_genes_per_signature))
+        if verbose:
+            logger.debug("returning {} genes after slicing", max_genes_per_signature)
     return genes
 
 
@@ -231,6 +240,7 @@ def process_clusters(
     cluster_table: dict[str, ad.AnnData],
     redundant_genes: set[str],
     expression_threshold=0.0,
+    max_genes_per_signature=-1,
     verbose=False,
 ) -> pd.DataFrame:
     """Given a dictionary of clusters and a set of redundant genes, calculates the gene_signature on a cell by cell basis.
@@ -239,6 +249,7 @@ def process_clusters(
         cluster_table (dict[str,ad.AnnData]): Holds the cluster data with cluster names as keys.
         redundant_genes (set[str]): A set of separately calculated genes to exclude from signatures.
         expression_threshold (float, optional): Only count genes with expression levels greater than this number. Defaults to 0.0.
+        max_genes_per_signature (int, optional): Restrict the number of genes per signature.  Defaults to -1 (no limit).
         verbose (bool, optional): Defaults to False.
 
     Returns:
@@ -265,6 +276,7 @@ def process_clusters(
                         adata=cluster_adata,
                         feature_index=cell_no,
                         expression_threshold=expression_threshold,
+                        max_genes_per_signature=max_genes_per_signature,
                         redundant_genes=redundant_genes,
                     ).keys()
                 )

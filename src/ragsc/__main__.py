@@ -1,10 +1,12 @@
 import argparse
 import os
 import sys
-from loguru import logger
-from ragsc import embed
 from pathlib import Path
+
 from dotenv import load_dotenv
+from loguru import logger
+
+from ragsc import embed
 
 load_dotenv()
 

@@ -5,19 +5,18 @@ script to explore different training sets to put in chroma database for accuracy
 detecting clusters
 """
 
-from pathlib import Path
-import sys
 import datetime
+import json
+import sys
+from pathlib import Path
 from typing import Union
 
 import chromadb
 import click
-from loguru import logger
 import pandas as pd
-import json
-
-from ragsc import utils
+from loguru import logger
 from ragsc import chroma as cdb
+from ragsc import utils
 
 
 def setup_database(input_file: Union[str, Path]) -> chromadb.Collection:

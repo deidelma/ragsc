@@ -4,12 +4,12 @@ chroma.py
 Interface to ChromaDB
 """
 
+import json
 from pathlib import Path
 from typing import Union
 
 import chromadb
 import pandas as pd
-import json
 from loguru import logger
 
 

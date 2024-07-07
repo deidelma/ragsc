@@ -4,10 +4,11 @@ Tests for the ragsc.signatures module
 
 """
 
+from typing import Optional
+
 import anndata as ad
 import pytest
 from ragsc import signatures
-from typing import Optional
 
 SOURCE_DATA: Optional[ad.AnnData] = None
 

@@ -5,15 +5,13 @@ Used to embed summary data rather than individual signatures
 """
 
 import os
-from pathlib import Path
 import sys
+from pathlib import Path
 
+import click
 import dotenv
 from loguru import logger
-import click
-
-from ragsc import utils
-from ragsc import embed
+from ragsc import embed, utils
 
 dotenv.load_dotenv(".env")
 if "OPENAI_API_KEY" in os.environ:

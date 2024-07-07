@@ -10,8 +10,8 @@ import json
 import threading
 import time
 
-import requests
 import pandas as pd
+import requests
 from loguru import logger
 
 thread_local = threading.local()
