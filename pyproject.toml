@@ -6,7 +6,7 @@ authors = [
 ]
 description = "Package to explore the use of RAGs in single cell RNA seq work"
 readme = "README.md"
-requires-python = "==3.9.19"
+
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
