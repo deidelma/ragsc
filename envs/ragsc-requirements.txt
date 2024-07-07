@@ -1,0 +1,9 @@
+
+scvi-tools
+loguru
+python-dotenv
+chromadb
+pyarrow
+fastparquet
+pytest
+ruff

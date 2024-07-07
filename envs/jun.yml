@@ -1,0 +1,35 @@
+#
+# as of June 28, 2024 this is definitive environment description for the ragsc project
+# for Mac (have eliminated the pytorch and nvidia packages)
+#
+name: ragsc
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.9
+  - pip
+  - nvim
+  - r
+  - r-tidyverse
+  - r-languageserver
+  - r-irkernel
+  - radian
+  - pip:
+    - numpy
+    - scanpy
+    - jupyterlab
+    - scvi-tools
+    - scarches
+    - celltypist
+    - loguru
+    - python-dotenv
+    - langchain-community
+    - langchain-openai
+    - chromadb
+    - pyarrow
+    - fastparquet
+    - pytest
+    - ruff
+variables:
+  SKLEARN_ALLOW_DEPRECATED_SKLEARN_PACKAGE_INSTALL: True
