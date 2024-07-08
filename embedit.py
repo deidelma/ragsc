@@ -1,7 +1,7 @@
 """
 embedit.py
 
-script to provide a CLI for calculating gene signatures and saving associated embeddings. 
+script to provide a CLI for calculating gene signatures and saving associated embeddings.
 
 Copyright 2024 David Eidelman, MIT License.
 """
@@ -13,8 +13,8 @@ import anndata as ad
 import click
 import pandas as pd
 from loguru import logger
-from ragsc import utils, signatures
 from ragsc import embed as em
+from ragsc import signatures, utils
 
 
 def process_cluster_data(adata: ad.AnnData, expression_threshold=1.5) -> pd.DataFrame:
