@@ -13,3 +13,7 @@ need to create a loop that
     * store the train data into vector database
     * compare the original cluster number to the top 5 predicted cluster numbers 
         * graph the results
+
+## 2024-07-07
+
+* also need to see the effect of changing the number of genes in a signature
