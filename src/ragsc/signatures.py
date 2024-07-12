@@ -15,7 +15,7 @@ from loguru import logger
 
 
 def get_highly_variable_genes(adata: ad.AnnData) -> ad.AnnData:
-    """Convenience fundtion to filter an AnnData with processed single cell data.  Assumes that adata.var.highly_variable exists.
+    """Convenience function to filter an AnnData with processed single cell data.  Assumes that adata.var.highly_variable exists.
 
     Args:
         adata (ad.AnnData): The data source.
@@ -67,7 +67,7 @@ def partition_clusters(
     for cluster in clusters:
         subset = adata[adata.obs[clustering_method] == cluster]  # type: ignore
         cluster_table[cluster] = subset.copy()
-    logger.debug("found {} clusters.", len(cluster_table))
+    logger.trace("found {} clusters.", len(cluster_table))
     return cluster_table
 
 
@@ -118,7 +118,7 @@ def get_highest_frequency_genes(
             print(
                 f"{gene}:{gene_table[gene]} ({gene_table[gene]/cell_count*100:4.1f}%)"
             )
-    logger.debug("return list of {} genes", len(gene_list))
+    logger.trace("return list of {} genes", len(gene_list))
     return gene_list
 
 
@@ -162,7 +162,7 @@ def find_redundant_genes(
     gene_names = list(gene_dict.keys())
 
     common_genes = set(gene_names)
-    logger.debug("returning {} unique gene names", len(common_genes))
+    logger.trace("returning {} unique gene names", len(common_genes))
     return common_genes
 
 
@@ -197,7 +197,7 @@ def get_gene_signature(
     gene_data = adata.X[feature_index].copy()  # type: ignore
     logger.trace("processing {} genes", len(gene_data))
     if verbose:
-        logger.debug("Started with {} genes", len(gene_data))
+        logger.trace("Started with {} genes", len(gene_data))
     # calculate the mask to find gene subset
     b = gene_data > expression_threshold
     expression = gene_data[b]
@@ -226,13 +226,13 @@ def get_gene_signature(
         "{} genes remain after removing mitochondrial genes (MT-*)", len(genes)
     )
     if verbose:
-        logger.debug("Found {} genes after filtering.", len(genes))
+        logger.trace("Found {} genes after filtering.", len(genes))
     logger.trace("returning {} genes as the signature of this cell", len(genes))
     if max_genes_per_signature > 0:
         logger.trace("max number of genes per signature is {}", max_genes_per_signature)
         genes = dict(itertools.islice(genes.items(), max_genes_per_signature))
         if verbose:
-            logger.debug("returning {} genes after slicing", max_genes_per_signature)
+            logger.trace("returning {} genes after slicing", max_genes_per_signature)
     return genes
 
 
@@ -293,5 +293,5 @@ def process_clusters(
         print(
             f"Processed {total_cells} to produce a dataframe with dimensions {sigs.shape}."
         )
-    logger.debug("returning dataframe with {} cells", sigs.shape[0])
+    logger.trace("returning dataframe with {} cells", sigs.shape[0])
     return sigs
