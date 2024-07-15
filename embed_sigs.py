@@ -66,6 +66,7 @@ def process_file(input_file_name):
 
 def process_directory(directory_name):
     dir_path = Path(directory_name)
+    logger.info("processing directory {}", dir_path)
     if not dir_path.exists() or not dir_path.is_dir():
         logger.error("invalid directory path {}", dir_path)
         sys.exit(1)
@@ -74,19 +75,12 @@ def process_directory(directory_name):
         # if f.name != INPUT_FILE_PATH.name and f.suffix == '.parquet':
         if f.suffix == '.parquet':
             try:
+                logger.info("about to process file {}", f)
                 process_file(f)
             except Exception as e:
                 logger.error("unable to process file: {}", f)
                 logger.exception(e)
 
 if __name__ == "__main__":
-    df = pd.read_parquet(INPUT_FILE_PATH)
-    logger.info("dataframe loaded from {}", INPUT_FILE_PATH)
-
-    api_key = utils.get_api_key()
-    logger.info("api key loaded")
-
-    df = embed_rows(df, api_key=api_key, n_rows=5)
-
-    df.to_csv(OUTPUT_FILE_PATH, index_label="cell_no", compression='gzip')
-    logger.info("wrote updated dataframe to {}", OUTPUT_FILE_PATH)
+    logger.add("logs/sig_embed_{time}.log")
+    process_directory(RESULTS_PATH)
