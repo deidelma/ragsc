@@ -52,6 +52,27 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
         logger.error("error reading embedding from openai ({}) {}", e, response.content)
         return cell_no, empty_json
 
+def get_embeddings_sequentially(
+        df: pd.DataFrame, api_key: str, start:int = 0, num_rows: int = 5) -> None:
+    """Get the embeddings for the rows in the dataframe using the provided parameters.
+
+    N.B. This modifies the provided dataframe by assigning
+    the embeddings to the column "embeddings" in the dataframe as a side effect.
+
+    Args:
+        df (pd.DataFrame): The dataframe to be modified.
+        api_key (str): The OpenAI API key.
+        start (int, optional): The starting row. Defaults to 0.
+        num_rows (int, optional): The number of rows to process. Defaults to 5.
+    """
+    if "embeddings" not in df.columns:
+        logger.trace("creating embeddings column in dataframe")
+        df["embeddings"] = ["" for i in range(df.shape[0])]
+    for row in range(start, start + num_rows):
+        result = get_embedding(row, df.signature[row], api_key)
+        row_no = result[0]
+        embedding = result[1]
+        df.embeddings[row_no] = embedding
 
 def get_embeddings_concurrently(
     df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5
@@ -112,9 +133,10 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
         for start_index in range(0, cycles * batch_size, batch_size):
             if start_index >= n_rows:
                 break
-            get_embeddings_concurrently(
-                df, api_key=api_key, start=start_index, num_rows=batch_size
-            )
+            # get_embeddings_concurrently(
+            #     df, api_key=api_key, start=start_index, num_rows=batch_size
+            # )
+            get_embeddings_sequentially(df, api_key=api_key, start=start_index, num_rows=batch_size)
             if start_index > 0 and start_index % batch_size == 0:
                 logger.info(f"Processed {start_index} rows")
         t2 = time.perf_counter()
@@ -129,9 +151,12 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
             cycles * batch_size,
         )
         t3 = time.perf_counter()
-        get_embeddings_concurrently(
+        get_embeddings_sequentially(
             df, api_key=api_key, start=cycles * batch_size, num_rows=extra
         )
+        # get_embeddings_concurrently(
+        #     df, api_key=api_key, start=cycles * batch_size, num_rows=extra
+        # )
         t4 = time.perf_counter()
         logger.info("elapsed time for extras: {:.3f}", t4 - t3)
     logger.info(

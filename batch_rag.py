@@ -104,11 +104,11 @@ def analyze(
         adata=input_data, expression_threshold=level, genes_per_sig=genes_per_signature
     )
     logger.info("processed cluster data")
-    df = embed_dataframe(df)
-    logger.info("embedded signatures")
-    collection = setup_database(df)
-    logger.info("created chromadb collection")
-    df = test_embeddings(collection=collection, df=df)
+    # df = embed_dataframe(df)
+    # logger.info("embedded signatures")
+    # collection = setup_database(df)
+    # logger.info("created chromadb collection")
+    # df = test_embeddings(collection=collection, df=df)
     logger.info("analysis complete")
     return df
 
@@ -164,21 +164,6 @@ def batch_rag(**kwargs) -> None:
 
     # mainloop
     permute(input_data, EXPR_LEVELS, GENES_PER_SIGNATURE, results_path, testing)
-    # for level in EXPR_LEVELS:
-    #     click.echo(click.style(f"calculating expression level: {level}", fg="green"))
-    #     level_str = str(level).replace(".", "$")
-    #     for n_genes in GENES_PER_SIGNATURE:
-    #         if n_genes == -1:
-    #             click.echo("no limit on genes per signature")
-    #             output_filename = f"ragsc_{level_str}_all.parquet"
-    #         else:
-    #             click.echo(f"{n_genes} genes per signature")
-    #             output_filename = f"ragsc_{level_str}_{n_genes}.parquet"
-    #         output_data = analyze(input_data, level, n_genes)
-    #         output_data_path = results_path / Path(output_filename)
-    #         click.echo(click.style(f"writing results to {output_data_path}", fg="blue"))
-    #         if not testing:
-    #             output_data.to_parquet(output_data_path)
     click.echo("batch complete")
 
 
