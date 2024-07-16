@@ -6,11 +6,15 @@ Adds OpenAI embeddings for dataframes with gene signatures.
 Copyright 2024, David Eidelman.  MIT License.
 """
 
+from gzip import READ
 import json
+import os
 import sys
 import time
 from pathlib import Path
 
+import click
+from networkx import sigma
 import pandas as pd
 from loguru import logger
 from ragsc import embed, utils
@@ -28,8 +32,12 @@ def embed_rows(df: pd.DataFrame, api_key: str, n_rows: int = -1) -> pd.DataFrame
     logger.info("attempting to embed {} rows", n_rows)
     t1 = time.perf_counter()
     for i in range(n_rows):
+        sig = df.signature.iloc[i]
+        if sig is None or len(sig) == 0:
+            logger.error("undefined signature for row {}",i)
+            continue
         row_no, embedding = embed.get_embedding(
-            i, df.signature.iloc[i], api_key=api_key
+            cell_no=i, gene_signature=sig, api_key=api_key
         )
         assert isinstance(embedding, list)
         embedding = json.dumps(embedding)
@@ -81,6 +89,23 @@ def process_directory(directory_name):
                 logger.error("unable to process file: {}", f)
                 logger.exception(e)
 
+
+@click.command()
+@click.option("-f", "--filename")
+@click.option("-d","--directory")
+def embed_sigs(**kwargs):
+    if kwargs['directory'] is not None:
+        # print("....")
+        dirpath = Path(kwargs['directory'])
+    else:
+        dirpath = RESULTS_PATH 
+    if kwargs['filename'] is not None:
+        filepath = Path(kwargs['filename'])
+        print(f"single file: {kwargs['filename']}")
+        process_file(dirpath / filepath)
+    else:
+        process_directory(dirpath)
 if __name__ == "__main__":
     logger.add("logs/sig_embed_{time}.log")
-    process_directory(RESULTS_PATH)
+    embed_sigs()
+    # process_directory(RESULTS_PATH)
