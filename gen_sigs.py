@@ -1,8 +1,7 @@
 """
-batch_rag.py
+gen_sigs.py
 
-script to process input anndata dataset generating gene signatures, embeddings, and
-testing RAG using chromadb under different conditions.
+script to process input anndata dataset generating gene signatures
 
 A full run tests the effect of varying expression levels and signatures lengths.
 
@@ -10,6 +9,7 @@ Copyright 2024, David Eidelman.  MIT License.
 """
 
 import json
+import sys
 from pathlib import Path
 from sys import stderr
 
@@ -19,6 +19,7 @@ import click
 import pandas as pd
 from anndata import AnnData
 from loguru import logger
+
 from ragsc import chroma as cdb
 from ragsc import embed, signatures, utils
 
@@ -103,14 +104,32 @@ def analyze(
     df = process_cluster_data(
         adata=input_data, expression_threshold=level, genes_per_sig=genes_per_signature
     )
-    logger.info("processed cluster data")
-    # df = embed_dataframe(df)
-    # logger.info("embedded signatures")
-    # collection = setup_database(df)
-    # logger.info("created chromadb collection")
-    # df = test_embeddings(collection=collection, df=df)
     logger.info("analysis complete")
     return df
+
+
+def single_condition(
+    adata: ad.AnnData,
+    expression_level: float,
+    genes_per_signature: int,
+    results_path: Path,
+    testing: bool = False,
+):
+    level = expression_level
+    click.echo(click.style(f"calculating expression level: {level}", fg="green"))
+    level_str = str(level).replace(".", "$")
+    n_genes = genes_per_signature
+    if n_genes == -1:
+        click.echo("no limit on genes per signature")
+        output_filename = f"ragsc_sig_{level_str}_all.parquet"
+    else:
+        click.echo(f"{n_genes} genes per signature")
+        output_filename = f"ragsc_sig_{level_str}_{n_genes}.parquet"
+    output_data = analyze(adata, level, n_genes)
+    output_data_path = results_path / Path(output_filename)
+    click.echo(click.style(f"writing results to {output_data_path}", fg="blue"))
+    if not testing:
+        output_data.to_parquet(output_data_path)
 
 
 def permute(
@@ -138,8 +157,34 @@ def permute(
 
 
 @click.command()
+@click.option(
+    "-f",
+    "--filename",
+    default=INPUT_FILE,
+    help="h5ad file to use as basis for analysis",
+)
+@click.option(
+    "-g",
+    "--genes_per_signature",
+    default=-1,
+    help="maximum number of genes per signature (-1 for unlimited)",
+)
+@click.option(
+    "-r", "--results", default="results", help="path to directory to store results"
+)
+@click.option(
+    "--single/--no-single",
+    default=False,
+    help="if True only analyze one set of conditions as set by -g -t",
+)
+@click.option(
+    "-t",
+    "--threshold",
+    default=0.0,
+    help="minimum expression threshold when analyzing a single file",
+)
 @click.option("--test/--no-test", default=False, help="activates testing mode")
-def batch_rag(**kwargs) -> None:
+def gen_sigs(**kwargs) -> None:
     click.echo("Starting batch")
 
     # handle command line args
@@ -149,23 +194,38 @@ def batch_rag(**kwargs) -> None:
 
     # setup paths
     logger.add("logs/batch_{time}.log")
-    input_path = Path(INPUT_FILE)
 
+    input_path = Path(kwargs["filename"])
     if not input_path.exists():
         click.echo(f"unable to find input file: {input_path}", stderr)
-    results_path = Path("results")
 
+    results_path = Path(kwargs["results"])
     if not results_path.exists():
         results_path.mkdir(exist_ok=True)
 
     # read input data
-    input_data = ad.read_h5ad(input_path)
-    click.echo(click.style(f"read input file:{input_path}", fg="green"))
+    try:
+        input_data = ad.read_h5ad(input_path)
+        click.echo(click.style(f"read input file:{input_path}", fg="green"))
+    except Exception as e:
+        logger.error("unable to read input file: {}", input_path)
+        logger.error("encountered exception {}", e)
+        sys.exit(1)
 
-    # mainloop
-    permute(input_data, EXPR_LEVELS, GENES_PER_SIGNATURE, results_path, testing)
+    if kwargs["single"]:
+        level = kwargs["threshold"]
+        genes_per_sig = kwargs["genes_per_signature"]
+        single_condition(
+            adata=input_data,
+            expression_level=level,
+            genes_per_signature=genes_per_sig,
+            results_path=results_path,
+            testing=testing,
+        )
+    else:
+        permute(input_data, EXPR_LEVELS, GENES_PER_SIGNATURE, results_path, testing)
     click.echo("batch complete")
 
 
 if __name__ == "__main__":
-    batch_rag()
+    gen_sigs()
