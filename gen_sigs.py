@@ -117,7 +117,7 @@ def single_condition(
 ):
     level = expression_level
     click.echo(click.style(f"calculating expression level: {level}", fg="green"))
-    level_str = str(level).replace(".", "$")
+    level_str = str(level).replace(".", "")
     n_genes = genes_per_signature
     if n_genes == -1:
         click.echo("no limit on genes per signature")
@@ -142,7 +142,7 @@ def permute(
     for level in expression_levels:
         click.echo(click.style(f"calculating expression level: {level}", fg="green"))
         level_str = str(level).replace(".", "$")
-        for n_genes in GENES_PER_SIGNATURE:
+        for n_genes in genes_per_signature:
             if n_genes == -1:
                 click.echo("no limit on genes per signature")
                 output_filename = f"ragsc_{level_str}_all.parquet"
@@ -185,7 +185,7 @@ def permute(
 )
 @click.option("--test/--no-test", default=False, help="activates testing mode")
 def gen_sigs(**kwargs) -> None:
-    click.echo("Starting batch")
+    click.echo("Starting signature generation")
 
     # handle command line args
     testing = kwargs["test"]
@@ -224,7 +224,7 @@ def gen_sigs(**kwargs) -> None:
         )
     else:
         permute(input_data, EXPR_LEVELS, GENES_PER_SIGNATURE, results_path, testing)
-    click.echo("batch complete")
+    click.echo("signature generation complete")
 
 
 if __name__ == "__main__":

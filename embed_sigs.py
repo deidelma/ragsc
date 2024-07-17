@@ -62,7 +62,7 @@ def get_output_file_path(input_file) -> Path:
     inpath = Path(input_file)
     return inpath.with_suffix('.csv.gz')
 
-def process_file(input_file_name):
+def process_file(input_file_name, testing=False):
     input_file_path = Path(input_file_name)
     assert input_file_path.exists()
     # output_file_path = input_file_path.with_suffix('.csv.gz')
@@ -73,12 +73,12 @@ def process_file(input_file_name):
     api_key = utils.get_api_key()
     logger.info("api key loaded")
 
-    df = embed_rows(df, api_key=api_key)
-
-    df.to_csv(output_file_path, index_label="cell_no",compression='gzip')
+    if not testing:
+        df = embed_rows(df, api_key=api_key)
+        df.to_csv(output_file_path, index_label="cell_no",compression='gzip')
     logger.info("wrote updated dataframe to {}", output_file_path)
 
-def process_directory(directory_name, overwrite = False):
+def process_directory(directory_name, overwrite = False, testing=False):
     dir_path = Path(directory_name)
     logger.info("processing directory {}", dir_path)
     if not dir_path.exists() or not dir_path.is_dir():
@@ -94,20 +94,24 @@ def process_directory(directory_name, overwrite = False):
         if f.suffix == '.parquet':
             try:
                 logger.info("about to process file {}", f)
-                process_file(f)
+                if not testing:
+                    process_file(f)
                 logger.info("processed file: {}",f)
             except Exception as e:
                 logger.error("unable to process file: {} due to exception", f)
                 logger.exception(e)
         else:
-            logger.error("file {} does not seem to be a parquet file - unable to process")
+            logger.info("file {} does not seem to be a parquet file - unable to process", f)
 
 
 @click.command()
 @click.option("-f", "--filename", help="set the input filename")
 @click.option("-d","--directory", help="set the input directory")
 @click.option("--overwrite/--no-overwrite", default=True, help="if True, ignores existing output files ")
+@click.option("--testing/--no-testing",default=False, help="puts script into test mode")
 def embed_sigs(**kwargs):
+    testing=kwargs['testing']
+    overwrite = kwargs['overwrite']
     if kwargs['directory'] is not None:
         dirpath = Path(kwargs['directory'])
     else:
@@ -115,11 +119,11 @@ def embed_sigs(**kwargs):
     if kwargs['filename'] is not None:
         filepath = Path(kwargs['filename'])
         logger.info("processing file: {}", dirpath / filepath)
-        process_file(dirpath / filepath)
+        process_file(input_file_name=filepath, testing=testing)
         logger.info("file processing complete")
     else:
         logger.info("processing directory:{}")
-        process_directory(dirpath)
+        process_directory(directory_name=dirpath, overwrite=overwrite, testing=testing)
         logger.info("directory processing complete")
 
 if __name__ == "__main__":
