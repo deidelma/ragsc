@@ -49,14 +49,14 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
                     "https://api.openai.com/v1/embeddings",
                     headers={"Authorization": f"Bearer {api_key}"},
                     json={"input": gene_signature, "model": "text-embedding-ada-002"},
+                    timeout=3,
                 )
                 return cell_no, response.json()["data"][0]["embedding"]
             except Exception as e1:
                 logger.error(
-                    "retrying ({}) after embed signature dur to openai error:{} {}",
+                    "retrying ({}) after embed signature dur to openai error:{}",
                     retry_count + 1,
                     f"{e1}",
-                    response.content,
                 )
                 retry_count += 1
     except Exception as e:
