@@ -6,15 +6,12 @@ Adds OpenAI embeddings for dataframes with gene signatures.
 Copyright 2024, David Eidelman.  MIT License.
 """
 
-from gzip import READ
 import json
-import os
 import sys
 import time
 from pathlib import Path
 
 import click
-from networkx import sigma
 import pandas as pd
 from loguru import logger
 from ragsc import embed, utils

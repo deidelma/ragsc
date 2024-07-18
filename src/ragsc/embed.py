@@ -41,19 +41,34 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
         logger.error("attempting to embed non-string data: {}", gene_signature)
         return cell_no, empty_json
     session = get_session()
+    retry_count = 0
     try:
-        response = session.post(
-            "https://api.openai.com/v1/embeddings",
-            headers={"Authorization": f"Bearer {api_key}"},
-            json={"input": gene_signature, "model": "text-embedding-ada-002"},
-        )
-        return cell_no, response.json()["data"][0]["embedding"]
+        while retry_count < 5:
+            try:
+                response = session.post(
+                    "https://api.openai.com/v1/embeddings",
+                    headers={"Authorization": f"Bearer {api_key}"},
+                    json={"input": gene_signature, "model": "text-embedding-ada-002"},
+                )
+                return cell_no, response.json()["data"][0]["embedding"]
+            except Exception as e1:
+                logger.error(
+                    "retrying ({}) after embed signature dur to openai error:{} {}",
+                    retry_count + 1,
+                    f"{e1}",
+                    response.content,
+                )
+                retry_count += 1
     except Exception as e:
-        logger.error("error reading embedding from openai ({}) {}", e, response.content)
-        return cell_no, empty_json
+        logger.error(
+            "error reading embedding from openai ({}) {}", f"{e}", response.content
+        )
+    return cell_no, empty_json
+
 
 def get_embeddings_sequentially(
-        df: pd.DataFrame, api_key: str, start:int = 0, num_rows: int = 5) -> None:
+    df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5
+) -> None:
     """Get the embeddings for the rows in the dataframe using the provided parameters.
 
     N.B. This modifies the provided dataframe by assigning
@@ -73,6 +88,7 @@ def get_embeddings_sequentially(
         row_no = result[0]
         embedding = result[1]
         df.embeddings[row_no] = embedding
+
 
 def get_embeddings_concurrently(
     df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5
@@ -136,7 +152,9 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
             # get_embeddings_concurrently(
             #     df, api_key=api_key, start=start_index, num_rows=batch_size
             # )
-            get_embeddings_sequentially(df, api_key=api_key, start=start_index, num_rows=batch_size)
+            get_embeddings_sequentially(
+                df, api_key=api_key, start=start_index, num_rows=batch_size
+            )
             if start_index > 0 and start_index % batch_size == 0:
                 logger.info(f"Processed {start_index} rows")
         t2 = time.perf_counter()
