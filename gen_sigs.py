@@ -23,11 +23,11 @@ from loguru import logger
 from ragsc import chroma as cdb
 from ragsc import embed, signatures, utils
 
-EXPR_LEVELS = [0.0, 1.0, 2.0, 3.0]
+EXPR_LEVELS = [0.0, 0.5, 1.0, 1.5, 2.0]
 GENES_PER_SIGNATURE = [
     -1,
-    10,
-    20,
+    30,
+    50,
 ]  # -1 is interpreted as not setting a limit on signature length
 INPUT_FILE = "data/subset.h5ad"
 
@@ -141,7 +141,7 @@ def permute(
 ) -> None:
     for level in expression_levels:
         click.echo(click.style(f"calculating expression level: {level}", fg="green"))
-        level_str = str(level).replace(".", "$")
+        level_str = str(level).replace(".", "")
         for n_genes in genes_per_signature:
             if n_genes == -1:
                 click.echo("no limit on genes per signature")

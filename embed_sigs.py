@@ -47,7 +47,7 @@ def embed_rows(df: pd.DataFrame, api_key: str, n_rows: int = -1) -> pd.DataFrame
         df.embeddings.iloc[row_no] = embedding
         rows_embedded += 1
         if row_no % 10 == 0:
-            logger.info("processed row {}", row_no)
+            logger.debug("processed row {}", row_no)
     t2 = time.perf_counter()
     elapsed = t2 - t1
     time_per_row = (t2 - t1) / n_rows
@@ -127,5 +127,5 @@ def embed_sigs(**kwargs):
         logger.info("directory processing complete")
 
 if __name__ == "__main__":
-    logger.add("logs/sig_embed_{time}.log")
+    logger.add("logs/sig_embed_{time}.log", level='INFO')
     embed_sigs()
