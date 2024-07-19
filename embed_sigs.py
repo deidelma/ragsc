@@ -51,13 +51,21 @@ def embed_rows(df: pd.DataFrame, api_key: str, n_rows: int = -1) -> pd.DataFrame
     logger.info(
         "embeddings complete, elapsed time: {0:7.2f}, time_per_iteration: {1:5.3f}".format(
             elapsed, time_per_row
-        ))
-    logger.info("input: {} rows, embedded: {} rows, null: {} rows", n_rows, rows_embedded, n_rows-rows_embedded)
+        )
+    )
+    logger.info(
+        "input: {} rows, embedded: {} rows, null: {} rows",
+        n_rows,
+        rows_embedded,
+        n_rows - rows_embedded,
+    )
     return df
+
 
 def get_output_file_path(input_file) -> Path:
     inpath = Path(input_file)
-    return inpath.with_suffix('.csv.gz')
+    return inpath.with_suffix(".csv.gz")
+
 
 def process_file(input_file_name, testing=False):
     input_file_path = Path(input_file_name)
@@ -72,10 +80,11 @@ def process_file(input_file_name, testing=False):
 
     if not testing:
         df = embed_rows(df, api_key=api_key)
-        df.to_csv(output_file_path, index_label="cell_no",compression='gzip')
+        df.to_csv(output_file_path, index_label="cell_no", compression="gzip")
     logger.info("wrote updated dataframe to {}", output_file_path)
 
-def process_directory(directory_name, overwrite = False, testing=False):
+
+def process_directory(directory_name, overwrite=False, testing=False):
     dir_path = Path(directory_name)
     logger.info("processing directory {}", dir_path)
     if not dir_path.exists() or not dir_path.is_dir():
@@ -84,37 +93,47 @@ def process_directory(directory_name, overwrite = False, testing=False):
 
     for f in dir_path.iterdir():
         output_path = get_output_file_path(f)
-        if not overwrite and output_path.exists(): 
-            logger.info("skipping file {} as it's output file {} already exists",f, output_path)
+        if not overwrite and output_path.exists():
+            logger.info(
+                "skipping file {} as it's output file {} already exists", f, output_path
+            )
             continue
         # if f.name != INPUT_FILE_PATH.name and f.suffix == '.parquet':
-        if f.suffix == '.parquet':
+        if f.suffix == ".parquet":
             try:
                 logger.info("about to process file {}", f)
                 if not testing:
                     process_file(f)
-                logger.info("processed file: {}",f)
+                logger.info("processed file: {}", f)
             except Exception as e:
                 logger.error("unable to process file: {} due to exception", f)
                 logger.exception(e)
         else:
-            logger.info("file {} does not seem to be a parquet file - unable to process", f)
+            logger.info(
+                "file {} does not seem to be a parquet file - unable to process", f
+            )
 
 
 @click.command()
 @click.option("-f", "--filename", help="set the input filename")
-@click.option("-d","--directory", help="set the input directory")
-@click.option("--overwrite/--no-overwrite", default=True, help="if True, ignores existing output files ")
-@click.option("--testing/--no-testing",default=False, help="puts script into test mode")
+@click.option("-d", "--directory", help="set the input directory")
+@click.option(
+    "--overwrite/--no-overwrite",
+    default=True,
+    help="if True, ignores existing output files ",
+)
+@click.option(
+    "--testing/--no-testing", default=False, help="puts script into test mode"
+)
 def embed_sigs(**kwargs):
-    testing=kwargs['testing']
-    overwrite = kwargs['overwrite']
-    if kwargs['directory'] is not None:
-        dirpath = Path(kwargs['directory'])
+    testing = kwargs["testing"]
+    overwrite = kwargs["overwrite"]
+    if kwargs["directory"] is not None:
+        dirpath = Path(kwargs["directory"])
     else:
-        dirpath = RESULTS_PATH 
-    if kwargs['filename'] is not None:
-        filepath = Path(kwargs['filename'])
+        dirpath = RESULTS_PATH
+    if kwargs["filename"] is not None:
+        filepath = Path(kwargs["filename"])
         logger.info("processing file: {}", dirpath / filepath)
         process_file(input_file_name=filepath, testing=testing)
         logger.info("file processing complete")
@@ -123,6 +142,7 @@ def embed_sigs(**kwargs):
         process_directory(directory_name=dirpath, overwrite=overwrite, testing=testing)
         logger.info("directory processing complete")
 
+
 if __name__ == "__main__":
-    logger.add("logs/sig_embed_{time}.log", level='INFO')
+    logger.add("logs/sig_embed_{time}.log", level="INFO")
     embed_sigs()
