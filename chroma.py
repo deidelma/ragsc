@@ -72,16 +72,14 @@ def chroma(**kwargs):
     try:
         collection = setup_database(input_file)
     except Exception as e:
-        logger.debug("unexpected exception raised during database setup")
-        logger.exception(e)
+        logger.error("unexpected exception raised during database setup {}", e)
         sys.exit(1)
 
     logger.info("loaded database with data from {}", input_file)
     try:
         df = utils.load_dataset(target_file)
     except Exception as e:
-        logger.debug("exception encountered while reading the target file")
-        logger.exception(e)
+        logger.error("exception encountered while reading the target file: {}",e)
         sys.exit(1)
 
     logger.info("testing database against data from {}", target_file)
@@ -92,8 +90,7 @@ def chroma(**kwargs):
     try:
         out_df = test_embeddings(collection, df)
     except Exception as e:
-        logger.error("unexpected exception during test_embeddings")
-        logger.exception(e)
+        logger.error("unexpected exception during test_embeddings: {}", e)
         sys.exit(1)
     logger.info("received output dataframe with {} rows", out_df.shape[0])
     if testing:
@@ -106,8 +103,7 @@ def chroma(**kwargs):
             out_df, output_path=f"data/embed_result_{ts}.parquet", overwrite=True
         )
     except Exception as e:
-        logger.error("unexpected exception raised while saving output file")
-        logger.exception(e)
+        logger.error("unexpected exception raised while saving output file:{}",e)
         sys.exit(1)
 
 
