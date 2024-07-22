@@ -179,3 +179,4 @@ dummy.ipynb
 results/
 results/** 
 .DS_Store
+.Rproj.user
