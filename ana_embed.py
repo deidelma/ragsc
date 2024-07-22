@@ -41,21 +41,34 @@ def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame) -> pd.Dat
     out_df = pd.DataFrame()
     out_df["cluster"] = df.cluster
     out_df["predicted"] = [0 for i in range(df.shape[0])]
+    error_count = 0
     for i in range(df.shape[0]):
-        embedding = json.loads(df.embeddings.iloc[i])
+        try:
+            embedding = json.loads(df.embeddings.iloc[i])
+        except TypeError:
+            logger.trace(
+                "row:{} unable to read JSON data: {} -- skipping row",
+                i,
+                df.embeddings.iloc[i],
+            )
+            error_count += 1
+            continue
         results: chromadb.QueryResult = collection.query(
             query_embeddings=embedding, n_results=5
         )
         # print(df.cluster.iloc[i])
-        r:list[str] = results["documents"][0] # type: ignore
-        r1 = (list(map(int,r)))
-        # print(r1)
+        r: list[str] = results["documents"][0]  # type: ignore
+        r1 = list(map(int, r))
         out_df["predicted"].iloc[i] = r1.count(df.cluster.iloc[i])
-        # breakpoint()
-        # predicted = json.dumps(results["documents"][0])  # type: ignore
-        # print(df.cluster.iloc[i], json.dumps(results['documents'][0])) # type:ignore
-        # out_df.predicted.iloc[i] = predicted
-        # print(predicted)
+    if error_count > 0:
+        logger.error("{} errors encountered!", error_count)
+        logger.info(
+            "successfully tested {} out of {} rows",
+            df.shape[0] - error_count,
+            df.shape[0],
+        )
+    else:
+        logger.info("successfully tested {} rows", df.shape[0])
     return out_df
 
 
@@ -110,6 +123,14 @@ def ana_embed(**kwargs):
         df.shape[0],
         df.shape[1],
     )
+    # first filter out any NaN rows
+    rows_before = df.shape[0]
+    df = df[~df.signature.isna()]
+    rows_after = df.shape[0]
+    if rows_before > rows_after:
+        logger.info(
+            "removed {} rows containing invalid signatures", rows_before - rows_after
+        )
     df_train, df_target = split_dataframe(df, fraction=fraction)
     logger.info(
         "split dataframe into two components: train({} rows) target({} rows)",
