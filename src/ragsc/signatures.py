@@ -172,6 +172,7 @@ def get_gene_signature(
     expression_threshold=0.0,
     max_genes_per_signature=-1,
     redundant_genes: set[str] = set(),
+    sort_by_expression: bool = True,
     verbose: bool = False,
 ) -> dict[str, float]:
     """Calculate the list of genes for the given cell based on the feature_index (i.e. for an individual cell).
@@ -183,6 +184,7 @@ def get_gene_signature(
         expression_threshold (float, optional): The minimum expression level. Defaults to 0.0, which returns all non-zero genes.
         max_genes_per_signature (int, optional): The maximum number of genes to include in a signature. Defaults to -1 (accept all genes).
         redundant_genes (set[str], optional): Genes to be filtered out from the final result. Defaults to the empty set.
+        sort_by_expression (bool, optional): If True, sort the genes in descending expression in the signature. Defaults to True.
         verbose (bool, optional): Print intermediated data to standard output. Defaults to False.
     Returns:
         dict[str, float]: Dictionary with gene names as keys and expression as values.
@@ -211,11 +213,16 @@ def get_gene_signature(
             f"Found {len(names)} genes exceeding expression threshold {expression_threshold:.3f}."
         )
 
-    # sort the genes based on expression
-    genes = dict(
-        sorted(dict(zip(names, expression)).items(), key=lambda x: x[1], reverse=True)
-    )
-    logger.trace("genes have been sorted by their expression level (highest to lowest)")
+    genes: dict[str, float] = dict(zip(names, expression))
+    if sort_by_expression:
+        # sort the genes based on expression
+        genes = dict(
+            sorted(genes.items(), key=lambda x: x[1], reverse=True)
+            # sorted(dict(zip(names, expression)).items(), key=lambda x: x[1], reverse=True)
+        )
+        logger.trace(
+            "genes have been sorted by their expression level (highest to lowest)"
+        )
     # remove redundant and mitochondrial genes
     genes = {
         k: v
@@ -223,7 +230,8 @@ def get_gene_signature(
         if k not in redundant_genes and not k.startswith("MT-")
     }
     logger.trace(
-        "{} genes remain after removing mitochondrial genes (MT-*)", len(genes)
+        "{} genes remain after removing mitochondrial (MT-*) and redundant genes",
+        len(genes),
     )
     if verbose:
         logger.trace("Found {} genes after filtering.", len(genes))
@@ -241,6 +249,7 @@ def process_clusters(
     redundant_genes: set[str],
     expression_threshold=0.0,
     max_genes_per_signature=-1,
+    sort_by_expression=True,
     verbose=False,
 ) -> pd.DataFrame:
     """Given a dictionary of clusters and a set of redundant genes, calculates the gene_signature on a cell by cell basis.
@@ -250,6 +259,7 @@ def process_clusters(
         redundant_genes (set[str]): A set of separately calculated genes to exclude from signatures.
         expression_threshold (float, optional): Only count genes with expression levels greater than this number. Defaults to 0.0.
         max_genes_per_signature (int, optional): Restrict the number of genes per signature.  Defaults to -1 (no limit).
+        sort_by_expression (bool, optional): Sort the gene names by expression in the signature. Defaults to True.
         verbose (bool, optional): Defaults to False.
 
     Returns:
@@ -277,6 +287,7 @@ def process_clusters(
                         feature_index=cell_no,
                         expression_threshold=expression_threshold,
                         max_genes_per_signature=max_genes_per_signature,
+                        sort_by_expression=sort_by_expression,
                         redundant_genes=redundant_genes,
                     ).keys()
                 )

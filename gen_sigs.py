@@ -32,7 +32,10 @@ INPUT_FILE = "data/subset.h5ad"
 
 
 def process_cluster_data(
-    adata: ad.AnnData, expression_threshold: float, genes_per_sig: int
+    adata: ad.AnnData,
+    expression_threshold: float,
+    genes_per_sig: int,
+    sort_by_expression: bool,
 ) -> pd.DataFrame:
     logger.info("processing {} cells {} genes", adata.shape[0], adata.shape[1])
     # get highly variable genes
@@ -58,6 +61,7 @@ def process_cluster_data(
         redundant_genes=redundant_genes,
         expression_threshold=expression_threshold,
         max_genes_per_signature=genes_per_sig,
+        sort_by_expression=sort_by_expression,
     )
     df["cell_id"] = df.index
     df["embeddings"] = ["" for x in range(df.shape[0])]
@@ -97,11 +101,17 @@ def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame) -> pd.Dat
 
 
 def analyze(
-    input_data: AnnData, level: float, genes_per_signature: int
+    input_data: AnnData,
+    level: float,
+    genes_per_signature: int,
+    sort_by_expression: bool,
 ) -> pd.DataFrame:
     logger.info("level {} genes_per_sig {}", level, genes_per_signature)
     df = process_cluster_data(
-        adata=input_data, expression_threshold=level, genes_per_sig=genes_per_signature
+        adata=input_data,
+        expression_threshold=level,
+        genes_per_sig=genes_per_signature,
+        sort_by_expression=sort_by_expression,
     )
     logger.info("analysis complete")
     return df
@@ -112,11 +122,14 @@ def single_condition(
     expression_level: float,
     genes_per_signature: int,
     results_path: Path,
+    sort_by_expression: bool,
     testing: bool = False,
 ):
     level = expression_level
     click.echo(click.style(f"calculating expression level: {level}", fg="green"))
     level_str = str(level).replace(".", "")
+    if not sort_by_expression:
+        level_str = level_str + "_unsorted_"
     n_genes = genes_per_signature
     if n_genes == -1:
         click.echo("no limit on genes per signature")
@@ -124,7 +137,7 @@ def single_condition(
     else:
         click.echo(f"{n_genes} genes per signature")
         output_filename = f"ragsc_sig_{level_str}_{n_genes}.parquet"
-    output_data = analyze(adata, level, n_genes)
+    output_data = analyze(adata, level, n_genes, sort_by_expression=sort_by_expression)
     output_data_path = results_path / Path(output_filename)
     click.echo(click.style(f"writing results to {output_data_path}", fg="blue"))
     if not testing:
@@ -136,11 +149,14 @@ def permute(
     expression_levels: list[float],
     genes_per_signature: list[int],
     results_path: Path,
+    sort_by_expression: bool,
     testing: bool,
 ) -> None:
     for level in expression_levels:
         click.echo(click.style(f"calculating expression level: {level}", fg="green"))
         level_str = str(level).replace(".", "")
+        if not sort_by_expression:
+            level_str = level_str + "_unsorted_"
         for n_genes in genes_per_signature:
             if n_genes == -1:
                 click.echo("no limit on genes per signature")
@@ -148,7 +164,9 @@ def permute(
             else:
                 click.echo(f"{n_genes} genes per signature")
                 output_filename = f"ragsc_{level_str}_{n_genes}.parquet"
-            output_data = analyze(adata, level, n_genes)
+            output_data = analyze(
+                adata, level, n_genes, sort_by_expression=sort_by_expression
+            )
             output_data_path = results_path / Path(output_filename)
             click.echo(click.style(f"writing results to {output_data_path}", fg="blue"))
             if not testing:
@@ -182,8 +200,22 @@ def permute(
     default=0.0,
     help="minimum expression threshold when analyzing a single file",
 )
+@click.option(
+    "--sort/--no-sort", default=True, help="sort gene signatures by expression level"
+)
 @click.option("--test/--no-test", default=False, help="activates testing mode")
 def gen_sigs(**kwargs) -> None:
+    """
+    gen_sigs
+
+    
+    Generates gene signatures based on the provided input file.
+
+
+    Parameters that can be adjusted include the minimum expression threshold, the maximum number of genes in each signature, whether to sort the genes in each signature by expression level.
+
+    Copyright 2024, David Eidelman.  MIT License.
+    """
     click.echo("Starting signature generation")
 
     # handle command line args
@@ -219,10 +251,18 @@ def gen_sigs(**kwargs) -> None:
             expression_level=level,
             genes_per_signature=genes_per_sig,
             results_path=results_path,
+            sort_by_expression=kwargs["sort"],
             testing=testing,
         )
     else:
-        permute(input_data, EXPR_LEVELS, GENES_PER_SIGNATURE, results_path, testing)
+        permute(
+            input_data,
+            EXPR_LEVELS,
+            GENES_PER_SIGNATURE,
+            results_path,
+            sort_by_expression=kwargs["sort"],
+            testing=testing,
+        )
     click.echo("signature generation complete")
 
 
