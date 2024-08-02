@@ -79,7 +79,7 @@ def chroma(**kwargs):
     try:
         df = utils.load_dataset(target_file)
     except Exception as e:
-        logger.error("exception encountered while reading the target file: {}",e)
+        logger.error("exception encountered while reading the target file: {}", e)
         sys.exit(1)
 
     logger.info("testing database against data from {}", target_file)
@@ -103,7 +103,7 @@ def chroma(**kwargs):
             out_df, output_path=f"data/embed_result_{ts}.parquet", overwrite=True
         )
     except Exception as e:
-        logger.error("unexpected exception raised while saving output file:{}",e)
+        logger.error("unexpected exception raised while saving output file:{}", e)
         sys.exit(1)
 
 
