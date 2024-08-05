@@ -1,6 +1,7 @@
 
 scvi-tools
 loguru
+celltypist
 python-dotenv
 chromadb
 pyarrow
