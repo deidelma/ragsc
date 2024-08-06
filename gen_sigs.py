@@ -208,7 +208,7 @@ def gen_sigs(**kwargs) -> None:
     """
     gen_sigs
 
-    
+
     Generates gene signatures based on the provided input file.
 
 
