@@ -69,7 +69,10 @@ def get_output_file_path(input_file) -> Path:
 
 def process_file(input_file_name, testing=False):
     input_file_path = Path(input_file_name)
-    assert input_file_path.exists()
+    logger.info("about to process file: {}", input_file_path)
+    if not input_file_path.exists():
+        logger.error("unable to find file {}", input_file_path)
+        sys.exit(1)
     # output_file_path = input_file_path.with_suffix('.csv.gz')
     output_file_path = get_output_file_path(input_file_path)
     df = pd.read_parquet(input_file_path)

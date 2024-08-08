@@ -214,6 +214,8 @@ def gen_sigs(**kwargs) -> None:
 
     Parameters that can be adjusted include the minimum expression threshold, the maximum number of genes in each signature, whether to sort the genes in each signature by expression level.
 
+    Output is a parquet file named based on the selected conditions.
+
     Copyright 2024, David Eidelman.  MIT License.
     """
     click.echo("Starting signature generation")

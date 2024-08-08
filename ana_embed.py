@@ -113,10 +113,15 @@ def ana_embed(**kwargs):
     fraction = kwargs["fraction"]
     input_path = Path(kwargs["directory"]) / Path(kwargs["filename"])
     output_path = Path(kwargs["directory"] / Path(kwargs["output"]))
-    if output_path.suffix not in [".csv", ".parquet"]:
-        logger.error("invalid output file suffix ({})", output_path.suffix)
+    if output_path.suffix == ".parquet":
+        df = pd.read_parquet(input_path)
+    elif output_path.suffix == '.csv':
+        df = pd.read_csv(input_path)
+    elif output_path.suffix == '.tsv':
+        df = pd.read_csv(input_path, sep='\t')
+    else: 
+        logger.error("invalid output file suffix ({}), expected one of .csv, .tsv, .parquet", output_path.suffix)
         sys.exit(1)
-    df = pd.read_csv(input_path)
     logger.info(
         "loaded {} yielding a dataframe with {} rows and {} columns",
         input_path,
