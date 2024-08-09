@@ -17,6 +17,9 @@ from loguru import logger
 thread_local = threading.local()
 empty_json = json.dumps([])
 
+ADA_EMBEDDING_MODEL="text-embedding-ada-002"
+SMALL_EMBEDDING_MODEL = "text-embedding-3-small"
+LARGE_EMBEDDING_MODEL = "text-embedding-3-large"
 
 def get_session():
     if not hasattr(thread_local, "session"):
@@ -24,7 +27,7 @@ def get_session():
     return thread_local.session
 
 
-def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int, str]:
+def get_embedding(cell_no: int, gene_signature: str, api_key: str, model=ADA_EMBEDDING_MODEL) -> tuple[int, str]:
     """Get the embedding for the gene_signature by calling the OpenAI API.
 
     This call is made synchronously using requests.
@@ -33,6 +36,7 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
         cell_no (int): The row or cell number to be associated with this embedding.
         gene_signature (str): The gene signature for this cell.
         api_key (str): An OpenAI API key.
+        model (str): A valid OpenAI text embedding model
 
     Returns:
         tuple[int, str]: The cell (row) number and the embedding as a tuple.
@@ -40,6 +44,8 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
     if not isinstance(gene_signature, str):
         logger.error("attempting to embed non-string data: {}", gene_signature)
         return cell_no, empty_json
+    if cell_no == 0:
+        logger.debug("embedding being done using model: {}", model)
     session = get_session()
     retry_count = 0
     try:
@@ -48,7 +54,7 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
                 response = session.post(
                     "https://api.openai.com/v1/embeddings",
                     headers={"Authorization": f"Bearer {api_key}"},
-                    json={"input": gene_signature, "model": "text-embedding-ada-002"},
+                    json={"input": gene_signature, "model": model},
                     timeout=3,
                 )
                 return cell_no, response.json()["data"][0]["embedding"]
@@ -67,7 +73,7 @@ def get_embedding(cell_no: int, gene_signature: str, api_key: str) -> tuple[int,
 
 
 def get_embeddings_sequentially(
-    df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5
+    df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5, model=ADA_EMBEDDING_MODEL
 ) -> None:
     """Get the embeddings for the rows in the dataframe using the provided parameters.
 
@@ -79,19 +85,21 @@ def get_embeddings_sequentially(
         api_key (str): The OpenAI API key.
         start (int, optional): The starting row. Defaults to 0.
         num_rows (int, optional): The number of rows to process. Defaults to 5.
+        model (str, optional): The embedding model to use. Defaults to ADA_EMBEDDING_MODEL
     """
     if "embeddings" not in df.columns:
         logger.trace("creating embeddings column in dataframe")
         df["embeddings"] = ["" for i in range(df.shape[0])]
     for row in range(start, start + num_rows):
-        result = get_embedding(row, df.signature[row], api_key)
+        result = get_embedding(row, df.signature[row], api_key, model)
         row_no = result[0]
         embedding = result[1]
         df.embeddings[row_no] = embedding
 
 
 def get_embeddings_concurrently(
-    df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5
+    df: pd.DataFrame, api_key: str, start: int = 0, num_rows: int = 5,
+    model=ADA_EMBEDDING_MODEL
 ) -> None:
     """Get the embeddings for the rows in the dataframe using the provided parameters.
 
@@ -103,6 +111,7 @@ def get_embeddings_concurrently(
         api_key (str): The OpenAI API key.
         start (int, optional): The starting row. Defaults to 0.
         num_rows (int, optional): The number of rows to process. Defaults to 5.
+        model (str, optional): The embedding model to use. Defaults to ADA_EMBEDDING_MODEL
     """
     if "embeddings" not in df.columns:
         logger.trace("creating embeddings column in dataframe")
@@ -111,7 +120,7 @@ def get_embeddings_concurrently(
     for row in range(start, start + num_rows):
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             futures[row] = executor.submit(
-                get_embedding, row, df.signature[row], api_key
+                get_embedding, row, df.signature[row], api_key, model
             )
 
     for future in futures:
@@ -121,7 +130,7 @@ def get_embeddings_concurrently(
         df.embeddings[row_no] = embedding
 
 
-def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
+def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str, model=ADA_EMBEDDING_MODEL):
     """Process the rows of the provided dataframe as batches to load
     embeddings into the provided dataframe.
 
@@ -129,6 +138,7 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
         df (pd.DataFrame): The dataframe to process.
         batch_size (int): The batch size.
         api_key (str): The OpenAI API key.
+        model (str, optional): The embedding model to use. Defaults to ADA_EMBEDDING_MODEL
     """
     n_rows = df.shape[0]
     cycles = n_rows // batch_size
@@ -142,6 +152,7 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
         batch_size,
         extra,
     )
+    logger.info("using embedding model: {}", model)
     # process the batches up to the remainder
     if cycles > 0:
         logger.debug("running from 0 to {} by {}", cycles * batch_size, batch_size)
@@ -153,7 +164,7 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
             #     df, api_key=api_key, start=start_index, num_rows=batch_size
             # )
             get_embeddings_sequentially(
-                df, api_key=api_key, start=start_index, num_rows=batch_size
+                df=df, api_key=api_key, start=start_index, num_rows=batch_size, model=model
             )
             if start_index > 0 and start_index % batch_size == 0:
                 logger.info(f"Processed {start_index} rows")
@@ -170,7 +181,7 @@ def batch_process_embeddings(df: pd.DataFrame, batch_size: int, api_key: str):
         )
         t3 = time.perf_counter()
         get_embeddings_sequentially(
-            df, api_key=api_key, start=cycles * batch_size, num_rows=extra
+            df, api_key=api_key, start=cycles * batch_size, num_rows=extra, model=model
         )
         # get_embeddings_concurrently(
         #     df, api_key=api_key, start=cycles * batch_size, num_rows=extra
