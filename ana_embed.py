@@ -28,15 +28,15 @@ def setup_database(input: Union[str, Path, pd.DataFrame]) -> chromadb.Collection
     return collection
 
 
-def test_item(df: pd.DataFrame, row: int, collection: chromadb.Collection):
+def test_item(df: pd.DataFrame, row: int, collection: chromadb.Collection, n_results=5):
     print(f"Original cluster: {df.cluster.iloc[row]}")
     results = collection.query(
-        query_embeddings=[json.loads(df.embeddings.iloc[row])], n_results=5
+        query_embeddings=[json.loads(df.embeddings.iloc[row])], n_results=n_results
     )
     print(results)
 
 
-def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame) -> pd.DataFrame:
+def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame, n_results=5) -> pd.DataFrame:
     logger.info("testing df with {} rows", df.shape[0])
     out_df = pd.DataFrame()
     out_df["cluster"] = df.cluster
@@ -54,7 +54,7 @@ def test_embeddings(collection: chromadb.Collection, df: pd.DataFrame) -> pd.Dat
             error_count += 1
             continue
         results: chromadb.QueryResult = collection.query(
-            query_embeddings=embedding, n_results=5
+            query_embeddings=embedding, n_results=n_results
         )
         # print(df.cluster.iloc[i])
         r: list[str] = results["documents"][0]  # type: ignore
@@ -104,6 +104,11 @@ def split_dataframe(
     default=0.5,
     help="the proportion of the input data to be used for training. (default 0.5)",
 )
+@click.option(
+   "-n","--n_results",
+   default=5,
+   help="The number of results retrieved from the database to consider when deciding if prediction was correct."
+)
 def ana_embed(**kwargs):
     """
     Uses Chromadb to create a vector database.  Splits the provided input file into test and target
@@ -113,6 +118,7 @@ def ana_embed(**kwargs):
     fraction = kwargs["fraction"]
     input_path = Path(kwargs["directory"]) / Path(kwargs["filename"])
     output_path = Path(kwargs["directory"] / Path(kwargs["output"]))
+    n_results = kwargs["n_results"]
     if output_path.suffix == ".parquet":
         df = pd.read_parquet(input_path)
     elif output_path.suffix == '.csv':
@@ -143,7 +149,7 @@ def ana_embed(**kwargs):
         df_target.shape[0],
     )
     collection = setup_database(df_train)
-    df_output = test_embeddings(collection, df_target)
+    df_output = test_embeddings(collection=collection, df=df_target, n_results=n_results)
     if output_path.suffix == ".csv":
         df_output.to_csv(output_path)
     else:
